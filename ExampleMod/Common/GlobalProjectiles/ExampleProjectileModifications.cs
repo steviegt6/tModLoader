@@ -3,6 +3,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 using ExampleMod.Common.GlobalNPCs;
+using Terraria.DataStructures;
 
 namespace ExampleMod.Common.GlobalProjectiles
 {
@@ -10,7 +11,6 @@ namespace ExampleMod.Common.GlobalProjectiles
 	public class ExampleProjectileModifications : GlobalProjectile
 	{
 		public override bool InstancePerEntity => true;
-		public override bool CloneNewInstances => true;
 		public bool applyBuffOnHit;
 		public bool sayTimesHitOnThirdHit;
 		// These are set when the user specifies that they want a trail.
@@ -39,7 +39,9 @@ namespace ExampleMod.Common.GlobalProjectiles
 
 		public override void PostAI(Projectile projectile) {
 			if (trailActive) {
-				Dust.NewDustDirect(projectile.position, projectile.width, projectile.height, DustID.TintableDustLighted, default, default, default, trailColor);
+				var entitySource = new EntitySource_Parent(projectile);
+
+				Dust.NewDustDirect(entitySource, projectile.position, projectile.width, projectile.height, DustID.TintableDustLighted, default, default, default, trailColor);
 			}
 		}
 	}

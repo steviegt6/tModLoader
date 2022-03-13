@@ -7,6 +7,7 @@ using Terraria.GameContent.Creative;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
+using Terraria.DataStructures;
 
 namespace ExampleMod.Content.Items.Consumables
 {
@@ -42,13 +43,13 @@ namespace ExampleMod.Content.Items.Consumables
 		public override void OpenBossBag(Player player) {
 			// We have to replicate the expert drops from MinionBossBody here via QuickSpawnItem
 
-			var source = player.GetItemSource_OpenItem(Type);
+			var entitySource = new EntitySource_ItemOpen(player, Type);
 
 			if (Main.rand.NextBool(7)) {
-				player.QuickSpawnItem(source, ModContent.ItemType<MinionBossMask>());
+				player.QuickSpawnItem(entitySource, ModContent.ItemType<MinionBossMask>());
 			}
 
-			player.QuickSpawnItem(source, ModContent.ItemType<ExampleItem>(), Main.rand.Next(12, 16));
+			player.QuickSpawnItem(entitySource, ModContent.ItemType<ExampleItem>(), Main.rand.Next(12, 16));
 		}
 
 		// Below is code for the visuals
@@ -70,7 +71,7 @@ namespace ExampleMod.Content.Items.Consumables
 				float distance = 0.3f + Main.rand.NextFloat() * 0.5f;
 				Vector2 velocity = new Vector2(0f, -Main.rand.NextFloat() * 0.3f - 1.5f);
 
-				Dust dust = Dust.NewDustPerfect(center + direction * distance, DustID.SilverFlame, velocity);
+				Dust dust = Dust.NewDustPerfect(new EntitySource_Parent(Item), center + direction * distance, DustID.SilverFlame, velocity);
 				dust.scale = 0.5f;
 				dust.fadeIn = 1.1f;
 				dust.noGravity = true;

@@ -1,5 +1,6 @@
+using ExampleMod.Content.Projectiles;
 using Microsoft.Xna.Framework;
-using Terraria.DataStructures;
+using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -55,6 +56,14 @@ namespace ExampleMod.Content.Items.Weapons
 			return new Vector2(2f, -2f);
 		}
 
+		//TODO: Move this to a more specifically named example. Say, a paint gun?
+		public override void ModifyShootStats(Player player, ref Vector2 position, ref Vector2 velocity, ref int type, ref int damage, ref float knockback) {
+			// Every projectile shot from this gun has a 1/3 chance of being an ExampleInstancedProjectile
+			if (Main.rand.NextBool(3)) {
+				type = ModContent.ProjectileType<ExampleInstancedProjectile>();
+			}
+		}
+
 		/*
 		* Feel free to uncomment any of the examples below to see what they do
 		*/
@@ -69,7 +78,7 @@ namespace ExampleMod.Content.Items.Weapons
 
 		// What if I wanted multiple projectiles in a even spread? (Vampire Knives)
 		// Even Arc style: Multiple Projectile, Even Spread
-		/*public override bool Shoot(Player player, ProjectileSource_Item_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) {
+		/*public override bool Shoot(Player player, EntitySource_Item_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) {
 			float numberProjectiles = 3 + Main.rand.Next(3); // 3, 4, or 5 shots
 			float rotation = MathHelper.ToRadians(45);
 
@@ -106,7 +115,7 @@ namespace ExampleMod.Content.Items.Weapons
 		}*/
 
 		// How can I shoot 2 different projectiles at the same time?
-		/*public override bool Shoot(Player player, ProjectileSource_Item_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) {
+		/*public override bool Shoot(Player player, EntitySource_Item_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) {
 			// Here we manually spawn the 2nd projectile, manually specifying the projectile type that we wish to shoot.
 			Projectile.NewProjectile(source, position, velocity, ProjectileID.GrenadeI, damage, knockback, player.whoAmI);
 
