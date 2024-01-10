@@ -176,6 +176,11 @@ namespace ExampleMod.Content.NPCs
 			ShimmerHeadIndex = Mod.AddNPCHeadTexture(Type, Texture + "_Shimmer_Head");
 		}
 
+		public override void Unload() {
+			// We don't want to hold onto a reference to the shop once the mod unloads.
+			Shop = null;
+		}
+
 		public override void SetStaticDefaults() {
 			Main.npcFrameCount[Type] = 25;
 			NPCID.Sets.ExtraFramesCount[Type] = 9;
