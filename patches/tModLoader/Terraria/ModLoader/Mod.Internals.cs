@@ -40,6 +40,7 @@ partial class Mod
 
 		equipTextures.Clear();
 
+		Assets.AssetLoadFailHandler = null;
 		Assets?.Dispose();
 	}
 
