@@ -97,7 +97,9 @@ public partial class UICharacterSelect : UIState
 					left += warningImage.Width.Pixels + 6;
 				}
 
-				var playerWithSameName = Main.PlayerList.FirstOrDefault(x => x.Name == fileData.Name);
+				var fileDataPath = fileData.Path;
+				var fileDataName = fileData.Path;
+				var playerWithSameName = Main.PlayerList.FirstOrDefault(x => x.Name == fileDataName);
 
 				if (playerWithSameName != null) {
 					var warningImage = new UIHoverImage(UICommon.ButtonExclamationTexture, Language.GetTextValue("tModLoader.PlayerWithThisNameExistsWillBeOverwritten")) {
@@ -135,7 +137,7 @@ public partial class UICharacterSelect : UIState
 					migrateIndividualPlayerText.SetText(Language.GetText("tModLoader.MigratingWorldsText"));
 
 					Task.Factory.StartNew(
-						() => ExecuteIndividualPlayerMigration(fileData, otherSaveFolderPath),
+						() => ExecuteIndividualPlayerMigration(fileDataPath, otherSaveFolderPath),
 						TaskCreationOptions.PreferFairness
 					);
 				};
@@ -147,11 +149,11 @@ public partial class UICharacterSelect : UIState
 		}
 	}
 
-	private static void ExecuteIndividualPlayerMigration(PlayerFileData fileData, string otherSaveFolderPath)
+	private static void ExecuteIndividualPlayerMigration(string fileDataPath, string otherSaveFolderPath)
 	{
 		try {
 			// Delete existing player files of the same name
-			string playerFileName = Path.GetFileNameWithoutExtension(fileData.Path);
+			string playerFileName = Path.GetFileNameWithoutExtension(fileDataPath);
 			var playerFiles = Directory.GetFiles(Main.PlayerPath, $"{playerFileName}.*")
 				.Where(s => s.EndsWith(".plr") || s.EndsWith(".tplr") || s.EndsWith(".bak"));
 
@@ -159,7 +161,7 @@ public partial class UICharacterSelect : UIState
 				File.Delete(existingPlayerFile);
 			}
 
-			string existingPlayerMapPath = Path.Combine(Main.PlayerPath, Path.GetFileNameWithoutExtension(fileData.Path));
+			string existingPlayerMapPath = Path.Combine(Main.PlayerPath, Path.GetFileNameWithoutExtension(fileDataPath));
 
 			if (Directory.Exists(existingPlayerMapPath)) {
 				Directory.Delete(existingPlayerMapPath, true);
@@ -173,7 +175,7 @@ public partial class UICharacterSelect : UIState
 			}
 
 			// Copy map files
-			string playerMapPath = Path.Combine(otherSaveFolderPath, Path.GetFileNameWithoutExtension(fileData.Path));
+			string playerMapPath = Path.Combine(otherSaveFolderPath, Path.GetFileNameWithoutExtension(fileDataPath));
 
 			if (Directory.Exists(playerMapPath)) {
 				FileUtilities.CopyFolder(playerMapPath, existingPlayerMapPath);
