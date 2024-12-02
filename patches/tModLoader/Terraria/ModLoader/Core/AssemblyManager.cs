@@ -232,7 +232,7 @@ public static class AssemblyManager
 		if (!GetLoadableTypes(assembly).Any(t => t.Namespace?.StartsWith(modName) == true))
 			throw new Exception(Language.GetTextValue("tModLoader.BuildErrorNamespaceFolderDontMatch"));
 
-		var modTypes = GetLoadableTypes(assembly).Where(t => t.IsSubclassOf(typeof(Mod))).ToArray();
+		var modTypes = GetLoadableTypes(assembly).Where(t => t.IsSubclassOf(typeof(Mod)) && !t.IsAbstract).ToArray();
 
 		if (modTypes.Length > 1)
 			throw new Exception($"{modName} has multiple classes extending Mod. Only one Mod per mod is supported at the moment");
