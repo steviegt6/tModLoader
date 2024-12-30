@@ -70,6 +70,8 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	// Starting position of the hashable part of the stream.
 	private long hashStartPos;
+	private bool hashHasBeenTaken;
+	private bool hashMatches;
 
 	internal TmodFile(string path, string name = null, Version version = null)
 	{
@@ -460,6 +462,24 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		// Read contract fulfilled
 	}
 
+	internal bool VerifyHash()
+	{
+		if (fileStream == null)
+			return false;
+
+		if (hashStartPos == 0)
+			return false;
+
+		if (hashHasBeenTaken)
+			return hashMatches;
+
+		var oldPos = fileStream.Position;
+		fileStream.Position = hashStartPos;
+		var result = Hash.SequenceEqual(sha1.ComputeHash(fileStream));
+		fileStream.Position = oldPos;
+		return result;
+	}
+
 	private void VerifyHashOrThrow(Exception exception)
 	{
 		if (fileStream == null)
@@ -472,12 +492,8 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		// - saving, etc. does not use this.
 		Debug.Assert(hashStartPos != 0);
 
-		var oldPos = fileStream.Position;
-		fileStream.Position = hashStartPos;
-		if (!Hash.SequenceEqual(sha1.ComputeHash(fileStream)))
-			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), exception);
 
-		// In case, for some reason, this is still relevant.
-		fileStream.Position = oldPos;
+		if (!VerifyHash())
+			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), exception);
 	}
 }
