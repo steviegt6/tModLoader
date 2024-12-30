@@ -1,7 +1,9 @@
 using Ionic.Zlib;
+using Microsoft.Build.Tasks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -45,6 +47,8 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	private static string Sanitize(string path) => path.Replace('\\', '/');
 
+	private static readonly SHA1 sha1 = SHA1.Create();
+
 	public readonly string path;
 
 	private FileStream fileStream;
@@ -65,6 +69,9 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	internal byte[] Signature { get; private set; } = new byte[256];
 
+	// Starting position of the hashable part of the stream.
+	private long hashStartPos;
+
 	internal TmodFile(string path, string name = null, Version version = null)
 	{
 		this.path = path;
@@ -76,11 +83,17 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	public byte[] GetBytes(FileEntry entry)
 	{
-		if (entry.cachedBytes != null && !entry.IsCompressed)
-			return entry.cachedBytes;
+		try {
+			if (entry.cachedBytes != null && !entry.IsCompressed)
+				return entry.cachedBytes;
 
-		using (var stream = GetStream(entry))
-			return stream.ReadBytes(entry.Length);
+			using (var stream = GetStream(entry))
+				return stream.ReadBytes(entry.Length);
+		}
+		catch (Exception e) {
+			VerifyHashOrThrow(e);
+			throw;
+		}
 	}
 
 	public List<string> GetFileNames() => files.Keys.ToList();
@@ -89,31 +102,37 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	public Stream GetStream(FileEntry entry, bool newFileStream = false)
 	{
-		Stream stream;
-		if (entry.cachedBytes != null) {
-			stream = entry.cachedBytes.ToMemoryStream();
-		}
-		else if (fileStream == null) {
-			throw new IOException($"File not open: {path}");
-		}
-		else if (newFileStream) {
-			var ers = new EntryReadStream(this, entry, File.OpenRead(path), false);
-			lock (independentEntryReadStreams) { // todo, make this a set? maybe?
-				independentEntryReadStreams.Add(ers);
+		try {
+			Stream stream;
+			if (entry.cachedBytes != null) {
+				stream = entry.cachedBytes.ToMemoryStream();
 			}
-			stream = ers;
-		}
-		else if (sharedEntryReadStream != null) {
-			throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
-		}
-		else {
-			stream = sharedEntryReadStream = new EntryReadStream(this, entry, fileStream, true);
-		}
+			else if (fileStream == null) {
+				throw new IOException($"File not open: {path}");
+			}
+			else if (newFileStream) {
+				var ers = new EntryReadStream(this, entry, File.OpenRead(path), false);
+				lock (independentEntryReadStreams) { // todo, make this a set? maybe?
+					independentEntryReadStreams.Add(ers);
+				}
+				stream = ers;
+			}
+			else if (sharedEntryReadStream != null) {
+				throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
+			}
+			else {
+				stream = sharedEntryReadStream = new EntryReadStream(this, entry, fileStream, true);
+			}
 
-		if (entry.IsCompressed)
-			stream = new DeflateStream(stream, CompressionMode.Decompress);
+			if (entry.IsCompressed)
+				stream = new DeflateStream(stream, CompressionMode.Decompress);
 
-		return stream;
+			return stream;
+		}
+		catch (Exception e) {
+			VerifyHashOrThrow(e);
+			throw;
+		}
 	}
 
 	internal void OnStreamClosed(EntryReadStream stream)
@@ -234,7 +253,7 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 			// update hash
 			fileStream.Position = dataPos;
-			Hash = SHA1.Create().ComputeHash(fileStream);
+			Hash = sha1.ComputeHash(fileStream);
 
 			fileStream.Position = hashPos;
 			writer.Write(Hash);
@@ -319,41 +338,41 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		//currently unused, included to read the entire data-blob as a byte-array without decompressing or waiting to hit end of stream
 		int datalen = reader.ReadInt32();
 
-		// verify integrity
-		long pos = fileStream.Position;
-		var verifyHash = SHA1.Create().ComputeHash(fileStream);
-		if (!verifyHash.SequenceEqual(Hash))
-			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"));
+		try {
+			hashStartPos = fileStream.Position;
 
-		fileStream.Position = pos;
+			if (TModLoaderVersion < new Version(0, 11)) {
+				Upgrade();
+				return;
+			}
 
-		if (TModLoaderVersion < new Version(0, 11)) {
-			Upgrade();
-			return;
+			// read hashed/signed mod info
+			Name = reader.ReadString();
+			Version = new Version(reader.ReadString());
+
+			// read file table
+			int offset = 0;
+			fileTable = new FileEntry[reader.ReadInt32()];
+			for (int i = 0; i < fileTable.Length; i++) {
+				var f = new FileEntry(
+					reader.ReadString(),
+					offset,
+					reader.ReadInt32(),
+					reader.ReadInt32());
+				fileTable[i] = f;
+				files[f.Name] = f;
+
+				offset += f.CompressedLength;
+			}
+
+			int fileStartPos = (int)fileStream.Position;
+			foreach (var f in fileTable)
+				f.Offset += fileStartPos;
 		}
-
-		// read hashed/signed mod info
-		Name = reader.ReadString();
-		Version = new Version(reader.ReadString());
-
-		// read file table
-		int offset = 0;
-		fileTable = new FileEntry[reader.ReadInt32()];
-		for (int i = 0; i < fileTable.Length; i++) {
-			var f = new FileEntry(
-				reader.ReadString(),
-				offset,
-				reader.ReadInt32(),
-				reader.ReadInt32());
-			fileTable[i] = f;
-			files[f.Name] = f;
-
-			offset += f.CompressedLength;
+		catch (Exception e) {
+			VerifyHashOrThrow(e);
+			throw;
 		}
-
-		int fileStartPos = (int)fileStream.Position;
-		foreach (var f in fileTable)
-			f.Offset += fileStartPos;
 	}
 
 	private void Reopen()
@@ -435,5 +454,26 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		// Save closes the file so re-open it
 		Open();
 		// Read contract fulfilled
+	}
+
+	private void VerifyHashOrThrow(Exception exception)
+	{
+		if (fileStream == null)
+			throw new IOException($"File not open: {path}", exception);
+
+		// It shouldn't be possible to get this far with an unknown hash starting
+		// position:
+		// - header reading is not wrapped in a trap that calls this,
+		// - erroneous user code would fail due to no file stream or similar,
+		// - saving, etc. does not use this.
+		Debug.Assert(hashStartPos != 0);
+
+		var oldPos = fileStream.Position;
+		fileStream.Position = hashStartPos;
+		if (!Hash.SequenceEqual(sha1.ComputeHash(fileStream)))
+			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), exception);
+
+		// In case, for some reason, this is still relevant.
+		fileStream.Position = oldPos;
 	}
 }
