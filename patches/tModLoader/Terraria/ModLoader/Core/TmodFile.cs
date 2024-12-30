@@ -327,9 +327,8 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		//currently unused, included to read the entire data-blob as a byte-array without decompressing or waiting to hit end of stream
 		int datalen = reader.ReadInt32();
 
-		// Verification.  We postpone hash verification until an error occurs during
-		// reading to avoid expensive calculations.  We can compare data lengths
-		// instead.
+		// Verification.  We postpone hash verification until mod loading or an error
+		// occurs during reading.
 		hashStartPos = fileStream.Position;
 		if (datalen != fileStream.Length - hashStartPos)
 			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"));
