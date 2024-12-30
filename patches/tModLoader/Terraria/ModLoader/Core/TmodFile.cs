@@ -474,7 +474,6 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 		// It shouldn't be possible to get this far with an unknown hash starting
 		// position:
-		// - header reading is not wrapped in a trap that calls this,
 		// - erroneous user code would fail due to no file stream or similar,
 		// - saving, etc. does not use this.
 		Debug.Assert(hashStartPos != 0);
