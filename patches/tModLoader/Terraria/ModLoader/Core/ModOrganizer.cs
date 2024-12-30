@@ -530,7 +530,7 @@ internal static class ModOrganizer
 		foreach (var mod in mods) {
 			if (!mod.modFile.VerifyHash()) {
 				errored.Add(mod);
-				errorLog.AppendLine(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted", mod));
+				errorLog.AppendLine(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorruptedWithModName", mod));
 			}
 		}
 		if (errored.Count > 0)
