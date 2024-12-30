@@ -451,8 +451,9 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	internal bool VerifyHash()
 	{
+		IDisposable handle = null;
 		if (fileStream == null)
-			return false;
+			handle = Open();
 
 		if (hashStartPos == 0)
 			return false;
@@ -464,6 +465,7 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		fileStream.Position = hashStartPos;
 		var result = Hash.SequenceEqual(sha1.ComputeHash(fileStream));
 		fileStream.Position = oldPos;
+		handle?.Dispose();
 		return result;
 	}
 
