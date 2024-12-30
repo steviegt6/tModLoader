@@ -84,17 +84,11 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	public byte[] GetBytes(FileEntry entry)
 	{
-		try {
-			if (entry.cachedBytes != null && !entry.IsCompressed)
-				return entry.cachedBytes;
+		if (entry.cachedBytes != null && !entry.IsCompressed)
+			return entry.cachedBytes;
 
-			using (var stream = GetStream(entry))
-				return stream.ReadBytes(entry.Length);
-		}
-		catch (Exception e) {
-			VerifyHashOrThrow(e);
-			throw;
-		}
+		using (var stream = GetStream(entry))
+			return stream.ReadBytes(entry.Length);
 	}
 
 	public List<string> GetFileNames() => files.Keys.ToList();
@@ -103,37 +97,31 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	public Stream GetStream(FileEntry entry, bool newFileStream = false)
 	{
-		try {
-			Stream stream;
-			if (entry.cachedBytes != null) {
-				stream = entry.cachedBytes.ToMemoryStream();
-			}
-			else if (fileStream == null) {
-				throw new IOException($"File not open: {path}");
-			}
-			else if (newFileStream) {
-				var ers = new EntryReadStream(this, entry, File.OpenRead(path), false);
-				lock (independentEntryReadStreams) { // todo, make this a set? maybe?
-					independentEntryReadStreams.Add(ers);
-				}
-				stream = ers;
-			}
-			else if (sharedEntryReadStream != null) {
-				throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
-			}
-			else {
-				stream = sharedEntryReadStream = new EntryReadStream(this, entry, fileStream, true);
-			}
-
-			if (entry.IsCompressed)
-				stream = new DeflateStream(stream, CompressionMode.Decompress);
-
-			return stream;
+		Stream stream;
+		if (entry.cachedBytes != null) {
+			stream = entry.cachedBytes.ToMemoryStream();
 		}
-		catch (Exception e) {
-			VerifyHashOrThrow(e);
-			throw;
+		else if (fileStream == null) {
+			throw new IOException($"File not open: {path}");
 		}
+		else if (newFileStream) {
+			var ers = new EntryReadStream(this, entry, File.OpenRead(path), false);
+			lock (independentEntryReadStreams) { // todo, make this a set? maybe?
+				independentEntryReadStreams.Add(ers);
+			}
+			stream = ers;
+		}
+		else if (sharedEntryReadStream != null) {
+			throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
+		}
+		else {
+			stream = sharedEntryReadStream = new EntryReadStream(this, entry, fileStream, true);
+		}
+
+		if (entry.IsCompressed)
+			stream = new DeflateStream(stream, CompressionMode.Decompress);
+
+		return stream;
 	}
 
 	internal void OnStreamClosed(EntryReadStream stream)
