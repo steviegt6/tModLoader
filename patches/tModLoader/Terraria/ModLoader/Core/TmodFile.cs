@@ -452,13 +452,9 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		if (hashStartPos == 0)
 			return false;
 
-		if (sharedEntryReadStream != null)
-			throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
-
-		using (Open()) {
-			fileStream.Position = hashStartPos;
-			return Hash.SequenceEqual(SHA1.Create().ComputeHash(fileStream));
-		}
+		using var fs = File.OpenRead(path);
+		fs.Position = hashStartPos;
+		return Hash.SequenceEqual(SHA1.Create().ComputeHash(fs));
 	}
 
 	private void VerifyHashOrThrow(Exception exception)
