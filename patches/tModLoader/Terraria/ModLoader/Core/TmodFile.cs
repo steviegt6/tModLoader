@@ -69,6 +69,7 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 	// Starting position of the hashable part of the stream.
 	private long hashStartPos;
 	private bool? hashVerified;
+
 	internal TmodFile(string path, string name = null, Version version = null)
 	{
 		this.path = path;
