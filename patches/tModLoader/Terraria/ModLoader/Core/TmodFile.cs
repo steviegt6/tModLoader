@@ -46,8 +46,6 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	private static string Sanitize(string path) => path.Replace('\\', '/');
 
-	private static readonly SHA1 sha1 = SHA1.Create();
-
 	public readonly string path;
 
 	private FileStream fileStream;
@@ -70,9 +68,7 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 	// Starting position of the hashable part of the stream.
 	private long hashStartPos;
-	private bool hashHasBeenTaken;
-	private bool hashMatches;
-
+	private bool? hashVerified;
 	internal TmodFile(string path, string name = null, Version version = null)
 	{
 		this.path = path;
@@ -242,7 +238,7 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 
 			// update hash
 			fileStream.Position = dataPos;
-			Hash = sha1.ComputeHash(fileStream);
+			Hash = SHA1.Create().ComputeHash(fileStream);
 
 			fileStream.Position = hashPos;
 			writer.Write(Hash);
@@ -449,24 +445,20 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		// Read contract fulfilled
 	}
 
-	internal bool VerifyHash()
-	{
-		IDisposable handle = null;
-		if (fileStream == null)
-			handle = Open();
+	internal bool VerifyHash() => hashVerified ??= _VerifyHash();
 
+	private bool _VerifyHash()
+	{
 		if (hashStartPos == 0)
 			return false;
 
-		if (hashHasBeenTaken)
-			return hashMatches;
+		if (sharedEntryReadStream != null)
+			throw new IOException($"Previous entry read stream not closed: {sharedEntryReadStream.Name}");
 
-		var oldPos = fileStream.Position;
-		fileStream.Position = hashStartPos;
-		var result = Hash.SequenceEqual(sha1.ComputeHash(fileStream));
-		fileStream.Position = oldPos;
-		handle?.Dispose();
-		return result;
+		using (Open()) {
+			fileStream.Position = hashStartPos;
+			return Hash.SequenceEqual(SHA1.Create().ComputeHash(fileStream));
+		}
 	}
 
 	private void VerifyHashOrThrow(Exception exception)
@@ -479,7 +471,6 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		// - erroneous user code would fail due to no file stream or similar,
 		// - saving, etc. does not use this.
 		Debug.Assert(hashStartPos != 0);
-
 
 		if (!VerifyHash())
 			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), exception);
