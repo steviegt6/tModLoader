@@ -360,7 +360,10 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 				f.Offset += fileStartPos;
 		}
 		catch (Exception e) {
-			VerifyHashOrThrow(e);
+			if (!VerifyHash())
+				throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), e);
+
+			// If the hash is fine, let it bubble up like normal.
 			throw;
 		}
 	}
@@ -456,20 +459,5 @@ public class TmodFile : IEnumerable<TmodFile.FileEntry>
 		using var fs = File.OpenRead(path);
 		fs.Position = hashStartPos;
 		return Hash.SequenceEqual(SHA1.Create().ComputeHash(fs));
-	}
-
-	private void VerifyHashOrThrow(Exception exception)
-	{
-		if (fileStream == null)
-			throw new IOException($"File not open: {path}", exception);
-
-		// It shouldn't be possible to get this far with an unknown hash starting
-		// position:
-		// - erroneous user code would fail due to no file stream or similar,
-		// - saving, etc. does not use this.
-		Debug.Assert(hashStartPos != 0);
-
-		if (!VerifyHash())
-			throw new Exception(Language.GetTextValue("tModLoader.LoadErrorHashMismatchCorrupted"), exception);
 	}
 }
