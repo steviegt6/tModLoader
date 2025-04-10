@@ -95,14 +95,14 @@ public static class ModLoader
 		FileAssociationSupport.UpdateFileAssociation();
 		FolderShortcutSupport.UpdateFolderShortcuts();
 		MonoModHooks.Initialize();
-		// FNAFixes.Init();
+		FNAFixes.Init();
 		LoaderManager.AutoLoad();
 	}
 
 	internal static void EngineInitWithWindow(nint windowHandle)
 	{
 		Program.AttemptSupportHighDPI(/*Main.dedServ*/ false, windowHandle); // Can run anytime
-		FNAFixes.Init(windowHandle);
+		FNAFixes.InitWithWindow(windowHandle);
 	}
 
 	internal static void PrepareAssets()

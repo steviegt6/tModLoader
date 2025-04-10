@@ -6,7 +6,7 @@ namespace Terraria.ModLoader.Engine;
 
 internal static class FNAFixes
 {
-	internal static void Init(nint windowHandle)
+	internal static void Init()
 	{
 		if (OperatingSystem.IsWindows()) {
 			// FNA sets this to "1" on Windows. Terraria does not want this. See #2020
@@ -20,9 +20,12 @@ internal static class FNAFixes
 			// SDL.SDL_StartTextInput(windowHandle);
 		}
 
-		SDL.SDL_StartTextInput(windowHandle);
-
 		ConfigureDrivers();
+	}
+
+	internal static void InitWithWindow(nint windowHandle)
+	{
+		SDL.SDL_StartTextInput(windowHandle);
 	}
 
 	private static void ConfigureDrivers()
