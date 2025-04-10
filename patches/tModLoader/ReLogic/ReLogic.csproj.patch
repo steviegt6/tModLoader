@@ -8,7 +8,7 @@
  	</PropertyGroup>
  	<ItemGroup>
 -		<Reference Include="../Terraria/Libraries/Common/Ionic.Zip.CF.dll" />
- 		<ProjectReference Include="../../../FNA/FNA.Core.csproj" />
+ 		<ProjectReference Include="../../../FNA/src/FNA/FNA.csproj" />
  		<Reference Include="../Terraria/Libraries/Common/Newtonsoft.Json.dll" />
  		<Reference Include="../Terraria/Libraries/Common/SteelSeriesEngineWrapper.dll" />
 +		<PackageReference Include="DotNetZip" Version="1.16.0" />

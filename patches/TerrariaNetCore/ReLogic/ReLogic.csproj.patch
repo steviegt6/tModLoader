@@ -11,7 +11,7 @@
 -		<Reference Include="../Terraria/Libraries/XNA/Microsoft.Xna.Framework.Graphics.dll" Condition="$(DefineConstants.Contains('XNA'))" />
 -		<Reference Include="../Terraria/Libraries/JSON.NET/Newtonsoft.Json.dll" />
 +		<Reference Include="../Terraria/Libraries/Common/Ionic.Zip.CF.dll" />
-+		<ProjectReference Include="../../../FNA/FNA.Core.csproj" />
++		<ProjectReference Include="../../../FNA/src/FNA/FNA.csproj" />
 +		<Reference Include="../Terraria/Libraries/Common/Newtonsoft.Json.dll" />
  		<Reference Include="../Terraria/Libraries/Common/SteelSeriesEngineWrapper.dll" />
 -		<Reference Include="System" />

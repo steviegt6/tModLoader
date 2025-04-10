@@ -41,7 +41,7 @@
  
  	<!-- References -->
  	<ItemGroup>
- 		<ProjectReference Include="../../../FNA/FNA.Core.csproj" />
+ 		<ProjectReference Include="../../../FNA/src/FNA/FNA.csproj" />
  		<ProjectReference Include="../ReLogic/ReLogic.csproj" />
 -		<EmbeddedResource Include="../ReLogic/bin/$(Configuration)/$(TargetFramework)/ReLogic.dll">
 -			<Link>Libraries/ReLogic/ReLogic.dll</Link>
