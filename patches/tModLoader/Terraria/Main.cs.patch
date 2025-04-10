@@ -1161,22 +1161,28 @@
  			RegistryKey currentUser = Registry.CurrentUser;
  			currentUser = currentUser.CreateSubKey("Software\\Terraria");
  			if (currentUser != null && currentUser.GetValue("Bunny") != null && currentUser.GetValue("Bunny").ToString() == "1")
-@@ -3352,14 +_,42 @@
+@@ -3302,7 +_,7 @@
+ 		}
+ 	}
+ 
+-	protected void LoadSettings()
++	protected unsafe void LoadSettings()
+ 	{
+ 		if (File.Exists(SavePath + Path.DirectorySeparatorChar + "config.dat")) {
+ 			OpenLegacySettings();
+@@ -3352,14 +_,39 @@
  		int currentValue3 = graphics.PreferredBackBufferHeight;
  		configuration.Get("DisplayWidth", ref currentValue2);
  		configuration.Get("DisplayHeight", ref currentValue3);
 +
 +		//Solxan: This is for properly settings the Screen Max Width & Max Height for large displays.
 +		// Iterates to find the largest display and assumes that is allowed.
-+		// TODO: Reimplement.
-+		/*SDL3.SDL.SDL_GetDisplays(out int count);
++		uint* displayIds = (uint*)SDL3.SDL.SDL_GetDisplays(out int count);
 +		for (int i = 0; i < count; i++) {
-+			int displayModeIndex = 0;
-+			while (SDL3.SDL.SDL_GetDisplayMode(displayModeIndex++, i, out var sdlMode) == 0) {
-+				maxScreenW = Math.Max(sdlMode.w, maxScreenW);
-+				maxScreenH = Math.Max(sdlMode.h, maxScreenH);
-+			}
-+		}*/
++			SDL3.SDL.SDL_DisplayMode* displayMode = (SDL3.SDL.SDL_DisplayMode*)SDL3.SDL.SDL_GetDesktopDisplayMode(displayIds[i]);
++			maxScreenW = Math.Max(displayMode->w, maxScreenW);
++			maxScreenH = Math.Max(displayMode->h, maxScreenH);
++		}
 +
 +		Logging.tML.Info($"Maximum Resolution is {maxScreenW} x {maxScreenH}");
 +
