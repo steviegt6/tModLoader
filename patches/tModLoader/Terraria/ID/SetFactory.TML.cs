@@ -183,8 +183,9 @@ public partial class SetFactory
 		ContainingClassName = idClassName;
 		GetName = getName;
 
-		if (SetFactories.Any(x => x.ContainingClassName == ContainingClassName))
-			throw new Exception("SetFactory instances must have unique names");
+		// Tomat: Disable this check for now until upstream implements a fix.
+		// if (SetFactories.Any(x => x.ContainingClassName == ContainingClassName))
+		// 	throw new Exception("SetFactory instances must have unique names");
 
 		SetFactories.Add(this);
 
