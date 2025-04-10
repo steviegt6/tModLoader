@@ -84,7 +84,7 @@ internal static class FNALogging
 
 		Logging.FNA.Debug("Querying linked library versions...");
 
-		Logging.FNA.Debug($"SDL v{SDL3.SDL.SDL_GetVersion}");
+		Logging.FNA.Debug($"SDL v{SDL3.SDL.SDL_GetVersion()}");
 
 		uint fna3d_version = FNA3D.FNA3D_LinkedVersion();
 		Logging.FNA.Debug($"FNA3D v{fna3d_version / 10000}.{fna3d_version / 100 % 100}.{fna3d_version % 100}");
