@@ -17,8 +17,10 @@ internal static class FNAFixes
 			Logging.FNA.Info("SteamDeck detected, configuring keyboard input workaround.");
 			SDL.SDL_SetHintWithPriority("SDL_ENABLE_SCREEN_KEYBOARD", "0", SDL.SDL_HintPriority.SDL_HINT_OVERRIDE);
 			// SDL.SDL_HINT_ENABLE_SCREEN_KEYBOARD const only exists in SDL 2.28+, but FNA is currently targeting 2.26.0, so we use string directly.
-			SDL.SDL_StartTextInput(windowHandle);
+			// SDL.SDL_StartTextInput(windowHandle);
 		}
+
+		SDL.SDL_StartTextInput(windowHandle);
 
 		ConfigureDrivers();
 	}
