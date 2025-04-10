@@ -1,24 +1,25 @@
-using ReLogic.OS;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using ReLogic.Content;
+using ReLogic.OS;
+using Terraria.Initializers;
 using Terraria.Localization;
+using Terraria.ModLoader.Assets;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.Default;
 using Terraria.ModLoader.Engine;
-using Terraria.ModLoader.UI;
-using Terraria.Initializers;
-using Terraria.ModLoader.Assets;
-using ReLogic.Content;
-using System.Runtime.CompilerServices;
-using Terraria.Social.Steam;
 using Terraria.ModLoader.Exceptions;
+using Terraria.ModLoader.UI;
+using Terraria.Social.Steam;
+using Terraria.Social.WeGame;
 
 namespace Terraria.ModLoader;
 
@@ -94,8 +95,14 @@ public static class ModLoader
 		FileAssociationSupport.UpdateFileAssociation();
 		FolderShortcutSupport.UpdateFolderShortcuts();
 		MonoModHooks.Initialize();
-		FNAFixes.Init();
+		// FNAFixes.Init();
 		LoaderManager.AutoLoad();
+	}
+
+	internal static void EngineInitWithWindow(nint windowHandle)
+	{
+		Program.AttemptSupportHighDPI(/*Main.dedServ*/ false, windowHandle); // Can run anytime
+		FNAFixes.Init(windowHandle);
 	}
 
 	internal static void PrepareAssets()

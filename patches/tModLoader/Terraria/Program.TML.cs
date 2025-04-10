@@ -348,7 +348,8 @@ public static partial class Program
 			if (ModLoader.Core.ModCompile.DeveloperMode) // Needs to run after SetSavePath, as the static ctor depends on SavePath
 				Logging.tML.Info("Developer mode enabled");
 
-			AttemptSupportHighDPI(isServer); // Can run anytime
+			// Moved to EngineInitWithWindowHandle.
+			// AttemptSupportHighDPI(isServer); // Can run anytime
 
 		    if (!isServer) {
 		    	NativeLibraries.CheckNativeFAudioDependencies();
@@ -389,7 +390,7 @@ public static partial class Program
 	private const int HighDpiThreshold = 96; // Rando internet value that Solxan couldn't refind the sauce for.
 
 	// Add Support for High DPI displays, such as Mac M1 laptops. Must run before Game constructor.
-	private static void AttemptSupportHighDPI(bool isServer)
+	internal static void AttemptSupportHighDPI(bool isServer, nint windowHandle)
 	{
 		if (isServer)
 			return;
@@ -401,10 +402,10 @@ public static partial class Program
 			SetProcessDPIAware();
 		}
 
-		SDL2.SDL.SDL_VideoInit(null);
-		SDL2.SDL.SDL_GetDisplayDPI(0, out var ddpi, out float hdpi, out float vdpi);
-		Logging.tML.Info($"Display DPI: Diagonal DPI is {ddpi}. Vertical DPI is {vdpi}. Horizontal DPI is {hdpi}");
-		if (ddpi >= HighDpiThreshold || hdpi >= HighDpiThreshold || vdpi >= HighDpiThreshold) {
+		SDL3.SDL.SDL_InitSubSystem(SDL3.SDL.SDL_InitFlags.SDL_INIT_VIDEO);
+		float dpi = SDL3.SDL.SDL_GetWindowDisplayScale(windowHandle) * HighDpiThreshold;
+		Logging.tML.Info($"Display DPI: {dpi}");
+		if (dpi >= HighDpiThreshold) {
 			Environment.SetEnvironmentVariable("FNA_GRAPHICS_ENABLE_HIGHDPI", "1");
 			Logging.tML.Info($"High DPI Display detected: setting FNA to highdpi mode");
 		}

@@ -148,7 +148,7 @@
  		Platform.Get<IWindowService>().SetQuickEditEnabled(enabled: false);
  		RunGame();
  	}
-@@ -184,9 +_,14 @@
+@@ -184,9 +_,18 @@
  				Main.instance.IsMouseVisible = false;
  			};
  		}
@@ -160,6 +160,10 @@
 +			ModLoader.ModLoader.EngineInit();
 +
 +			using Main main = new Main();
++
++			if (!Main.dedServ) {
++				ModLoader.ModLoader.EngineInitWithWindow(main.Window.Handle);
++			}
 +
  			Lang.InitializeLegacyLocalization();
  			SocialAPI.Initialize();

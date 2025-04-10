@@ -1,4 +1,4 @@
-using SDL2;
+using SDL3;
 using System;
 using System.Linq;
 
@@ -6,7 +6,7 @@ namespace Terraria.ModLoader.Engine;
 
 internal static class FNAFixes
 {
-	internal static void Init()
+	internal static void Init(nint windowHandle)
 	{
 		if (OperatingSystem.IsWindows()) {
 			// FNA sets this to "1" on Windows. Terraria does not want this. See #2020
@@ -17,7 +17,7 @@ internal static class FNAFixes
 			Logging.FNA.Info("SteamDeck detected, configuring keyboard input workaround.");
 			SDL.SDL_SetHintWithPriority("SDL_ENABLE_SCREEN_KEYBOARD", "0", SDL.SDL_HintPriority.SDL_HINT_OVERRIDE);
 			// SDL.SDL_HINT_ENABLE_SCREEN_KEYBOARD const only exists in SDL 2.28+, but FNA is currently targeting 2.26.0, so we use string directly.
-			SDL.SDL_StartTextInput();
+			SDL.SDL_StartTextInput(windowHandle);
 		}
 
 		ConfigureDrivers();
@@ -29,8 +29,8 @@ internal static class FNAFixes
 		// Hints in https://github.com/libsdl-org/SDL/blob/release-2.28.x/include/SDL_hints.h#L2384
 		// Note that env var names change in SDL 3.x
 
-		ConfigureDrivers("SDL_VIDEODRIVER", "-videodriver", SDL.SDL_GetNumVideoDrivers(), SDL.SDL_GetVideoDriver);
-		ConfigureDrivers("SDL_AUDIODRIVER", "-audiodriver", SDL.SDL_GetNumAudioDrivers(), SDL.SDL_GetAudioDriver);
+		ConfigureDrivers("SDL_VIDEO_DRIVER", "-videodriver", SDL.SDL_GetNumVideoDrivers(), SDL.SDL_GetVideoDriver);
+		ConfigureDrivers("SDL_AUDIO_DRIVER", "-audiodriver", SDL.SDL_GetNumAudioDrivers(), SDL.SDL_GetAudioDriver);
 	}
 
 	private static void ConfigureDrivers(string sdlHintName, string launchArg, int numDrivers, Func<int, string> getDriver)

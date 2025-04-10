@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using Terraria.Localization;
 
@@ -27,7 +28,7 @@ internal class ErrorReporting
 			// always write to console. Ideal for headless servers
 			Console.ForegroundColor = ConsoleColor.Red;
 			Console.Out.WriteLine(title + "\n" + message);
-			SDL2.SDL.SDL_ShowSimpleMessageBox(SDL2.SDL.SDL_MessageBoxFlags.SDL_MESSAGEBOX_ERROR, title, message, IntPtr.Zero);
+			SDL3.SDL.SDL_ShowSimpleMessageBox(SDL3.SDL.SDL_MessageBoxFlags.SDL_MESSAGEBOX_ERROR, title, message, IntPtr.Zero);
 		}
 		catch { }
 	}
@@ -47,7 +48,7 @@ internal class ErrorReporting
 	public static void FatalExit(string message, Exception e)
 	{
 		try {
-			if (SDL2.SDL.SDL_GetError() is string error && !string.IsNullOrWhiteSpace(error))
+			if (SDL3.SDL.SDL_GetError() is string error && !string.IsNullOrWhiteSpace(error))
 				message += "\n\nSDL Error: " + error;
 		}
 		catch { }
@@ -95,33 +96,35 @@ internal class ErrorReporting
 	/// Shows an OS-provided modal message box displaying a message and a number of buttons and returns the button index of the user-selected option. The first option will be mapped to return key and the last option to escape key. The options are displayed from right to left in order.
 	/// </summary>
 	/// <returns></returns>
-	internal static int ShowMessageBoxWithChoices(string title, string message, string[] buttonLabels)
+	internal static unsafe int ShowMessageBoxWithChoices(string title, string message, string[] buttonLabels)
 	{
-		SDL2.SDL.SDL_MessageBoxButtonData[] buttons = new SDL2.SDL.SDL_MessageBoxButtonData[buttonLabels.Length];
+		SDL3.SDL.SDL_MessageBoxButtonData[] buttons = new SDL3.SDL.SDL_MessageBoxButtonData[buttonLabels.Length];
 		for (int i = 0; i < buttonLabels.Length; i++) {
-			buttons[i] = new SDL2.SDL.SDL_MessageBoxButtonData() { flags = 0, buttonid = i, text = buttonLabels[i] };
+			buttons[i] = new SDL3.SDL.SDL_MessageBoxButtonData() { flags = 0, buttonID = i, text = Utf8StringMarshaller.ConvertToUnmanaged(buttonLabels[i]) };
 			if (i == 0)
-				buttons[i].flags = SDL2.SDL.SDL_MessageBoxButtonFlags.SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+				buttons[i].flags = SDL3.SDL.SDL_MessageBoxButtonFlags.SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
 			else if (i == buttonLabels.Length - 1)
-				buttons[i].flags = SDL2.SDL.SDL_MessageBoxButtonFlags.SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+				buttons[i].flags = SDL3.SDL.SDL_MessageBoxButtonFlags.SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
 		}
-		SDL2.SDL.SDL_MessageBoxData messageBoxData = new SDL2.SDL.SDL_MessageBoxData() {
-			flags = SDL2.SDL.SDL_MessageBoxFlags.SDL_MESSAGEBOX_INFORMATION,
-			window = IntPtr.Zero,
-			title = title,
-			message = message,
-			numbuttons = buttons.Length,
-			buttons = buttons,
-			colorScheme = null
-		};
-		int buttonID;
-		if (SDL2.SDL.SDL_ShowMessageBox(ref messageBoxData, out buttonID) < 0) {
-			Logging.tML.Info("ShowMessageBoxWithChoices: Error displaying message box");
+		fixed (SDL3.SDL.SDL_MessageBoxButtonData* pButtons = &buttons[0]) {
+			SDL3.SDL.SDL_MessageBoxData messageBoxData = new SDL3.SDL.SDL_MessageBoxData() {
+				flags = SDL3.SDL.SDL_MessageBoxFlags.SDL_MESSAGEBOX_INFORMATION,
+				window = IntPtr.Zero,
+				title = Utf8StringMarshaller.ConvertToUnmanaged(title),
+				message = Utf8StringMarshaller.ConvertToUnmanaged(message),
+				numbuttons = buttons.Length,
+				buttons = pButtons,
+				colorScheme = null
+			};
+			int buttonID;
+			if (!SDL3.SDL.SDL_ShowMessageBox(ref messageBoxData, out buttonID)) {
+				Logging.tML.Info("ShowMessageBoxWithChoices: Error displaying message box");
+			}
+			if (buttonID == -1) {
+				Logging.tML.Info("ShowMessageBoxWithChoices: No selection");
+			}
+			return buttonID;
 		}
-		if (buttonID == -1) {
-			Logging.tML.Info("ShowMessageBoxWithChoices: No selection");
-		}
-		return buttonID;
 	}
 
 	/// <summary> Various error codes to show in Visual Studio. Mainly used to cross reference with source code. Subject to change if more granular error codes are needed. </summary>
