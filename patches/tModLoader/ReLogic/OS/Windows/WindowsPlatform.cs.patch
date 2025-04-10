@@ -1,0 +1,11 @@
+--- src/TerrariaNetCore/ReLogic/OS/Windows/WindowsPlatform.cs
++++ src/tModLoader/ReLogic/OS/Windows/WindowsPlatform.cs
+@@ -22,7 +_,7 @@
+ 	{
+ 		// Window.handle from FNAPlatform.CreateWindow() points to an SDL window instead of Win32 window
+ 		// Need to convert it to Win32 window
+-		nint hwnd = SDL.SDL_GetPointerProperty(SDL.SDL_GetWindowProperties(windowHandle), SDL.SDL_PROP_WINDOW_CREATE_WIN32_HWND_POINTER, nint.Zero);
++		nint hwnd = SDL.SDL_GetPointerProperty(SDL.SDL_GetWindowProperties(windowHandle), SDL.SDL_PROP_WINDOW_WIN32_HWND_POINTER, nint.Zero);
+ 		windowHandle = hwnd;
+ 
+ 		if (_wndProcHook == null)
