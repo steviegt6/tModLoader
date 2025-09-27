@@ -1,6 +1,6 @@
 --- src/TerrariaNetCore/Terraria/Graphics/Light/LegacyLighting.cs
 +++ src/tModLoader/Terraria/Graphics/Light/LegacyLighting.cs
-@@ -4,6 +_,7 @@
+@@ -4,11 +_,12 @@
  using Microsoft.Xna.Framework;
  using ReLogic.Threading;
  using Terraria.DataStructures;
@@ -8,6 +8,12 @@
  using Terraria.Utilities;
  
  namespace Terraria.Graphics.Light;
+ 
+-public class LegacyLighting : ILightingEngine
++public partial class LegacyLighting : ILightingEngine
+ {
+ 	public struct RectArea
+ 	{
 @@ -584,6 +_,7 @@
  			ScanOreFinderData = Main.LocalPlayer.accOreFinder
  		});
