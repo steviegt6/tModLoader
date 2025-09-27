@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Terraria.Graphics.Light;
@@ -24,5 +25,17 @@ partial class LightMap
 	public (Texture2D texture, Rectangle tileArea) GetBufferTexture()
 	{
 		throw new System.NotImplementedException();
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static Vector3 ToVector3(Vector4 value)
+	{
+		return new Vector3(value.X, value.Y, value.Z);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static Vector4 FromVector3(Vector3 value)
+	{
+		return new Vector4(value.X, value.Y, value.Z, 1f);
 	}
 }
