@@ -1,11 +1,17 @@
-﻿using System.Runtime.CompilerServices;
+﻿#nullable enable
+
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Content;
 
 namespace Terraria.Graphics.Light;
 
 partial class LightMap
 {
+	private Texture2D? bufferTexture;
+	private bool bufferNeedsUpdating;
+
 	/// <summary>
 	/// Requests this lightmap as a texture, with the width and height
 	/// corresponding to the size of the buffer in tiles (may flow offscreen,
@@ -22,9 +28,42 @@ partial class LightMap
 	/// The full buffer texture as well as a rectangle encompassing the visible
 	/// tile area within the buffer.
 	/// </returns>
-	public (Texture2D texture, Rectangle tileArea) GetBufferTexture()
+	public unsafe (Texture2D texture, Rectangle tileArea) GetBufferTexture()
 	{
-		throw new System.NotImplementedException();
+		var width = Width;
+		var height = Height;
+
+		// TODO
+		Rectangle tileArea = new(0, 0, width, height);
+
+		if (bufferTexture == null) {
+			bufferTexture = InitBufferTexture(width, height);
+			bufferNeedsUpdating = true;
+		}
+		else if (bufferTexture.Width != width || bufferTexture.Height != height) {
+			bufferTexture?.Dispose();
+			bufferTexture = InitBufferTexture(width, height);
+			bufferNeedsUpdating = true;
+		}
+
+		if (bufferNeedsUpdating) {
+			fixed (Vector4* pColors = &_colors[0]) {
+				bufferTexture.SetDataPointerEXT(0, null, (nint)pColors, width * height);
+			}
+
+			bufferNeedsUpdating = false;
+		}
+
+		return (bufferTexture, tileArea);
+	}
+
+	private static Texture2D InitBufferTexture(int width, int height)
+	{
+		if (!AssetRepository.IsMainThread) {
+			return Main.RunOnMainThread(() => InitBufferTexture(width, height)).GetAwaiter().GetResult();
+		}
+
+		return new Texture2D(Main.instance.GraphicsDevice, width, height, mipMap: false, format: SurfaceFormat.Vector4);
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
