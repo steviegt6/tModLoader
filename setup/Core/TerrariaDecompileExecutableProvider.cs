@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using ICSharpCode.Decompiler.Metadata;
@@ -31,6 +32,7 @@ internal sealed class TerrariaDecompileExecutableProvider
 			ClientVersion,
 			DecryptTerrariaExe);
 
+#if NET8_0_OR_GREATER
 		async Task DecryptTerrariaExe(string destinationPath)
 		{
 			if (key == null) {
@@ -46,6 +48,13 @@ internal sealed class TerrariaDecompileExecutableProvider
 			Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 			await File.WriteAllBytesAsync(destinationPath, decryptedFile, cancellationToken);
 		}
+#else
+		async Task DecryptTerrariaExe(string destinationPath)
+		{
+			// Shouldn't be reachable.
+			throw new NotSupportedException("Executable decryption not supported in VS build, Terraria EXE not found");
+		}
+#endif
 	}
 
 	public async Task<string> RetrieveServerExecutable(ITaskProgress taskProgress, CancellationToken cancellationToken = default)
@@ -61,7 +70,13 @@ internal sealed class TerrariaDecompileExecutableProvider
 
 			string serverVersionWithoutDots = ServerVersion.ToString().Replace(".", "");
 			string url = $"https://terraria.org/api/download/pc-dedicated-server/terraria-server-{serverVersionWithoutDots}.zip";
-			using var zip = new ZipArchive(await httpClient.GetStreamAsync(url, cancellationToken));
+			using var zip = new ZipArchive(
+#if NET8_0_OR_GREATER
+				await httpClient.GetStreamAsync(url, cancellationToken)
+#else
+				await httpClient.GetStreamAsync(url)
+#endif
+			);
 			zip.Entries.Single(e => e.FullName == $"{serverVersionWithoutDots}/Windows/TerrariaServer.exe").ExtractToFile(destinationPath);
 		}
 	}
@@ -125,7 +140,13 @@ internal sealed class TerrariaDecompileExecutableProvider
 
 		taskProgress.ReportStatus("Downloading .NET Framework Reference Assemblies...");
 		var url = "https://www.nuget.org/api/v2/package/Microsoft.NETFramework.ReferenceAssemblies.net481/1.0.3";
-		using var zip = new ZipArchive(await httpClient.GetStreamAsync(url, cancellationToken));
+		using var zip = new ZipArchive(
+#if NET8_0_OR_GREATER
+			await httpClient.GetStreamAsync(url, cancellationToken)
+#else
+			await httpClient.GetStreamAsync(url)
+#endif
+		);
 
 		var subfolder = "build/.NETFramework/v4.8.1";
 		foreach (var e in zip.Entries) {

@@ -310,8 +310,13 @@ namespace Terraria.ModLoader.Setup.Core
 
 				var s = res.TryOpenStream()!;
 				s.Position = 0;
-				using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write))
+				using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write)) {
+#if NET8_0_OR_GREATER
 					await s.CopyToAsync(fs, ct);
+#else
+					await s.CopyToAsync(fs);
+#endif
+				}
 			});
 		}
 
@@ -351,7 +356,11 @@ namespace Terraria.ModLoader.Setup.Core
 						source = FormatTask.Format(source, true, cancellationToken);
 					}
 
+#if NET8_0_OR_GREATER
 					await File.WriteAllTextAsync(path, source, cancellationToken);
+#else
+					File.WriteAllText(path, source);
+#endif
 				}
 			});
 		}

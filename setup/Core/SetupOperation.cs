@@ -17,7 +17,7 @@ namespace Terraria.ModLoader.Setup.Core
 
 			public WorkItem(string status, Func<CancellationToken, ValueTask> action) : this(status, (_, ct) => action(ct)) { }
 
-			public WorkItem(string status, Action action) : this(status, (_, _) => { action(); return ValueTask.CompletedTask; }) { }
+			public WorkItem(string status, Action action) : this(status, (_, _) => { action(); return new ValueTask(); }) { }
 
 			public string Status { get; set; }
 
@@ -35,6 +35,7 @@ namespace Terraria.ModLoader.Setup.Core
 			progress.SetCurrentProgress(0);
 			progress.SetMaxProgress(items.Count);
 
+#if NET8_0_OR_GREATER
 			await Parallel.ForEachAsync(
 				items,
 				new ParallelOptions {
@@ -61,6 +62,33 @@ namespace Terraria.ModLoader.Setup.Core
 					progress.SetCurrentProgress(Interlocked.Increment(ref currentProgress));
 				})
 				.WithAggregateException();
+#else
+			Parallel.ForEach(
+				items,
+				new ParallelOptions {
+					MaxDegreeOfParallelism = maxDegreeOfParallelism > 0 ? maxDegreeOfParallelism.Value : Environment.ProcessorCount,
+					CancellationToken = cancellationToken,
+				},
+				(item, ct) => {
+					using var workItemProgress = progress.StartWorkItem(item.Status);
+
+					void SetStatus(string s)
+					{
+						item.Status = s;
+						workItemProgress.ReportStatus(s);
+					}
+
+					try {
+						item.Worker(SetStatus, default);
+					}
+					catch (OperationCanceledException) { }
+					catch (Exception exception) {
+						throw new Exception($"Work item failed: \"{item.Status}\"", exception);
+					}
+
+					progress.SetCurrentProgress(Interlocked.Increment(ref currentProgress));
+				});
+#endif
 		}
 
 		public static void CreateDirectory(string dir) {
@@ -143,7 +171,7 @@ namespace Terraria.ModLoader.Setup.Core
 		///     Display a configuration dialog. Return false if the operation should be cancelled.
 		/// </summary>
 		/// <param name="cancellationToken"></param>
-		public virtual ValueTask ConfigurationPrompt(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+		public virtual ValueTask ConfigurationPrompt(CancellationToken cancellationToken = default) => new();
 
 		/// <summary>
 		///     Display a startup warning dialog

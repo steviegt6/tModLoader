@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#if !NET472_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -119,3 +120,4 @@ public class Secrets
 		return ms.ToArray();
 	}
 }
+#endif

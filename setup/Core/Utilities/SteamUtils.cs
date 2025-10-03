@@ -88,7 +88,9 @@ namespace Terraria.ModLoader.Setup.Core.Utilities
 		}
 
 		// Isolated to avoid loading Win32 stuff outside Windows.
+#if NET8_0_OR_GREATER
 		[SupportedOSPlatform("windows")]
+#endif
 		private static string? GetSteamDirectoryWindows() {
 			string keyPath = Environment.Is64BitOperatingSystem ? @"SOFTWARE\Wow6432Node\Valve\Steam" : @"SOFTWARE\Valve\Steam";
 

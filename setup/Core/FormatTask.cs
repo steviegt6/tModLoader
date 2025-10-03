@@ -59,10 +59,19 @@ namespace Terraria.ModLoader.Setup.Core
 		}
 
 		private static async ValueTask FormatFile(string path, bool aggressive, CancellationToken cancellationToken) {
+#if NET8_0_OR_GREATER
 			string source = await File.ReadAllTextAsync(path, cancellationToken);
+#else
+			string source = File.ReadAllText(path);
+#endif
 			string formatted = Format(source, aggressive, cancellationToken);
-			if (source != formatted)
+			if (source != formatted) {
+#if NET8_0_OR_GREATER
 				await File.WriteAllTextAsync(path, formatted, cancellationToken);
+#else
+				File.WriteAllText(path, formatted);
+#endif
+			}
 		}
 
 		private static SyntaxNode Format(SyntaxNode node, bool aggressive, CancellationToken cancellationToken) {

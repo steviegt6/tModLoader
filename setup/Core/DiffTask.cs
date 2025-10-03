@@ -56,12 +56,17 @@ namespace Terraria.ModLoader.Setup.Core
 			var removedFiles = PatchTask.EnumerateSrcFiles(parameters.BaseDir)
 				.Select(f => f.relPath)
 				.Where(path => !File.Exists(Path.Combine(parameters.PatchedDir, path)))
-				.Order()
+				.OrderBy(f => f)
 				.ToArray();
 
 			string removedFileList = Path.Combine(parameters.PatchDir, RemovedFileList);
-			if (removedFiles.Length > 0)
+			if (removedFiles.Length > 0) {
+#if NET8_0_OR_GREATER
 				await File.WriteAllLinesAsync(removedFileList, removedFiles, cancellationToken);
+#else
+				File.WriteAllLines(removedFileList, removedFiles);
+#endif
+			}
 			else
 				DeleteFile(removedFileList);
 
@@ -97,7 +102,13 @@ namespace Terraria.ModLoader.Setup.Core
 		{
 			var a = File.ReadAllBytes(basePath);
 			var b = File.ReadAllBytes(patchedPath);
-			if (a.Length == b.Length && a.AsSpan().SequenceEqual(b.AsSpan())) {
+			if (a.Length == b.Length &&
+#if NET8_0_OR_GREATER
+				a.AsSpan().SequenceEqual(b.AsSpan())
+#else
+				Enumerable.SequenceEqual(a, b)
+#endif
+			) {
 				DeleteFile(patchPath);
 				return;
 			}

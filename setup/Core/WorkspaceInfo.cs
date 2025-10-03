@@ -109,7 +109,8 @@ public sealed class WorkspaceInfo
 
 	public void UpdatePaths(string terrariaSteamDirectory, string? tMLDevSteamDirectory)
 	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(terrariaSteamDirectory);
+		if (string.IsNullOrWhiteSpace(terrariaSteamDirectory))
+			throw new ArgumentException("Terraria Steam directory was empty", nameof(terrariaSteamDirectory));
 
 		TerrariaSteamDirectory = PathUtils.GetCrossPlatformFullPath(terrariaSteamDirectory);
 		TMLDevSteamDirectory = PathUtils.GetCrossPlatformFullPath(

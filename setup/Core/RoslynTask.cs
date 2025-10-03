@@ -35,8 +35,13 @@ namespace Terraria.ModLoader.Setup.Core
 				var newDoc = await Process(doc, ct);
 				var before = await doc.GetTextAsync(ct);
 				var after = await newDoc.GetTextAsync(ct);
-				if (before != after)
+				if (before != after) {
+#if NET8_0_OR_GREATER
 					await File.WriteAllTextAsync(newDoc.FilePath!, after.ToString(), ct);
+#else
+					File.WriteAllText(newDoc.FilePath!, after.ToString());
+#endif
+				}
 			}));
 
 			await ExecuteParallel(workItems.ToList(), taskProgress, maxDegreeOfParallelism: MaxDegreeOfParallelism, cancellationToken: cancellationToken);

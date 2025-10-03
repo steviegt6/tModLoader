@@ -20,7 +20,13 @@ public static class SettingsMigrator
 			.SelectMany(x => x.GetFiles("user.config", SearchOption.AllDirectories))
 			.ToArray();
 
-		var latestFile = settingsFileInfos.MaxBy(x => x?.LastWriteTimeUtc);
+		var latestFile = settingsFileInfos
+#if NET8_0_OR_GREATER
+			.MaxBy(x => x?.LastWriteTimeUtc);
+#else
+			.OrderByDescending(x => x?.LastWriteTimeUtc)
+			.FirstOrDefault();
+#endif
 
 		if (latestFile == null) {
 			return;
