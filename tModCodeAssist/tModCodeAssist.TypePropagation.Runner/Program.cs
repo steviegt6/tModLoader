@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Threading.Tasks;
 using tModCodeAssist.TypePropagation.Runner.MSBuild;
 
 namespace tModCodeAssist.TypePropagation.Runner;
 
 internal static class Program
 {
-	public static int Main(string[] args)
+	public async static Task<int> Main(string[] args)
 	{
 		if (args.Length is < 1 or > 2) {
-			Console.Error.WriteLine("Usage: ./propagator.exe <path-to-sln-or-csproj> [project-name]");
+			await Console.Error.WriteLineAsync("Usage: ./propagator.exe <path-to-sln-or-csproj> [project-name]");
 			return 1;
 		}
 
@@ -18,7 +19,7 @@ internal static class Program
 		string projPath = args[0];
 		string? projName = args.Length > 1 ? args[1] : null;
 
-		using var analyzer = new ProjectAnalyzer(projPath, projName);
+		using ProjectAnalyzer analyzer = await ProjectAnalyzer.CreateAsync(projPath, projName);
 		SymbolTracker tracker = analyzer.Run();
 
 		return 0;
