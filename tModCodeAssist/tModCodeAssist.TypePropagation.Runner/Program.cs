@@ -19,8 +19,13 @@ internal static class Program
 		string projPath = args[0];
 		string? projName = args.Length > 1 ? args[1] : null;
 
+		await Console.Out.WriteLineAsync($"Reading project: {projPath}...");
 		using ProjectAnalyzer analyzer = await ProjectAnalyzer.CreateAsync(projPath, projName);
+		await Console.Out.WriteLineAsync("Finished reading project!");
+
+		await Console.Out.WriteLineAsync("Running type propagation...");
 		SymbolTracker tracker = analyzer.Run();
+		await Console.Out.WriteLineAsync("Finished propagating types!");
 
 		return 0;
 	}

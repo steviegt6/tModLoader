@@ -22,12 +22,11 @@ public sealed class ProjectAnalyzer(
 		foreach ((ISymbol symbol, IdKind kind) in WellKnownSeedProvider.GetSeedsForCompilation(compilation))
 			tracker.TryUpdate(symbol, kind);
 
-		int iteration = 0;
-		bool changed = true;
-		while (changed) {
-			Console.WriteLine($"Propagation iteration: {iteration++}");
-			changed = PropagationEngine.PropagateOnce(compilation, tracker);
+		int i = 0;
+		do {
+			Console.WriteLine($"Propagation iteration: {i++}");
 		}
+		while (PropagationEngine.PropagateOnce(compilation, tracker));
 
 		return new SymbolTracker();
 	}
