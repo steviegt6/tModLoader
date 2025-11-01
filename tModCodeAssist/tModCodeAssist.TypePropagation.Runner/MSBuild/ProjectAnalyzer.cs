@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -26,8 +27,10 @@ public sealed class ProjectAnalyzer(
 		int i = 0;
 		do {
 			Console.Write($"Propagation iteration {i++}... ");
+			var sw = Stopwatch.StartNew();
 			changed = PropagationEngine.PropagateOnce(compilation, tracker, out int changes);
-			Console.WriteLine($"{changes} change(s)");
+			sw.Stop();
+			Console.WriteLine($"{changes} change(s) (elapsed: {sw.Elapsed:g})");
 		}
 		while (changed);
 

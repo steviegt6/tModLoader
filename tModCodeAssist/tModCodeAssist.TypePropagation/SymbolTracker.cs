@@ -21,9 +21,11 @@ public sealed class SymbolTracker
 	public bool TryUpdate(ISymbol symbol, IdKind kind)
 	{
 		if (symbolKinds.TryGetValue(symbol, out IdKind existing)) {
-			if (existing == kind) {
+			if (existing == kind)
 				return false;
-			}
+
+			if (existing == IdKind.Multiple)
+				return false;
 
 			// Error case.
 			symbolKinds[symbol] = IdKind.Multiple;
