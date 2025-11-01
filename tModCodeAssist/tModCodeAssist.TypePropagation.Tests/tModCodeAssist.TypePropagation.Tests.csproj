@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\tModCodeAssist.TypePropagation.Runner\tModCodeAssist.TypePropagation.Runner.csproj"/>
         <ProjectReference Include="..\tModCodeAssist.TypePropagation\tModCodeAssist.TypePropagation.csproj"/>
     </ItemGroup>
 
