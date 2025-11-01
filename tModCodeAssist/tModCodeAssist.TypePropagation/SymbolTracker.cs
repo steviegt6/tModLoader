@@ -30,7 +30,7 @@ public sealed class SymbolTracker
 			return true;
 		}
 
-		symbolKinds[symbol] = existing;
+		symbolKinds[symbol] = kind;
 		return true;
 	}
 
