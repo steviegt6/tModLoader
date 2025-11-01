@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using tModCodeAssist.TypePropagation.Runner.MSBuild;
 
@@ -24,8 +25,10 @@ internal static class Program
 		await Console.Out.WriteLineAsync("Finished reading project!");
 
 		await Console.Out.WriteLineAsync("Running type propagation...");
+		var sw = Stopwatch.StartNew();
 		SymbolTracker tracker = analyzer.Run();
-		await Console.Out.WriteLineAsync("Finished propagating types!");
+		sw.Stop();
+		await Console.Out.WriteLineAsync($"Finished propagating types! Elapsed: {sw.Elapsed:g}");
 
 		return 0;
 	}
