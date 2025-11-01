@@ -38,6 +38,7 @@ public sealed class SymbolTracker
 	///		Gets the <see cref="IdKind"/> of a symbol.
 	/// </summary>
 	/// <returns>The symbol kind, or <see cref="IdKind.Unknown"/>.</returns>
-	public IdKind GetKind(ISymbol symbol) =>
+	public IdKind GetKind(ISymbol? symbol) =>
+		symbol is null ? IdKind.Unknown :
 		symbolKinds.TryGetValue(symbol, out IdKind kind) ? kind : IdKind.Unknown;
 }
