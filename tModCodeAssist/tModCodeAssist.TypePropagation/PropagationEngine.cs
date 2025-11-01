@@ -11,12 +11,8 @@ namespace tModCodeAssist.TypePropagation;
 /// </summary>
 public static class PropagationEngine
 {
-	private ref struct Context
+	private record struct Context(SemanticModel Model, SymbolTracker Tracker)
 	{
-		public required SemanticModel Model { get; init; }
-
-		public required SymbolTracker Tracker { get; init; }
-
 		public int Changes { get; set; }
 
 		public void Update(ISymbol symbol, IdKind kind)
@@ -45,27 +41,27 @@ public static class PropagationEngine
 			SemanticModel model = compilation.GetSemanticModel(tree);
 
 			foreach (SyntaxNode? node in tree.GetRoot().DescendantNodes()) {
-				var context = new Context { Model = model, Tracker = tracker };
+				var context = new Context(model, tracker);
 
 				switch (node) {
 					// int a = b;
 					case VariableDeclaratorSyntax variableDeclaratorSyntax:
-						HandleVariableDeclaration(context, variableDeclaratorSyntax);
+						HandleVariableDeclaration(ref context, variableDeclaratorSyntax);
 						break;
 
 					// a = b;
 					case AssignmentExpressionSyntax assignmentExpressionSyntax:
-						HandleAssignmentExpression(context, assignmentExpressionSyntax);
+						HandleAssignmentExpression(ref context, assignmentExpressionSyntax);
 						break;
 
 					// Method(arg);
 					case InvocationExpressionSyntax invocationExpressionSyntax:
-						HandleInvocationExpression(context, invocationExpressionSyntax);
+						HandleInvocationExpression(ref context, invocationExpressionSyntax);
 						break;
 
 					// return expr;
 					case ReturnStatementSyntax returnStatementSyntax:
-						HandleReturnStatement(context, returnStatementSyntax);
+						HandleReturnStatement(ref context, returnStatementSyntax);
 						break;
 				}
 
@@ -77,7 +73,7 @@ public static class PropagationEngine
 	}
 
 	private static void HandleVariableDeclaration(
-		Context ctx,
+		ref Context ctx,
 		VariableDeclaratorSyntax syntax
 	)
 	{
@@ -94,7 +90,7 @@ public static class PropagationEngine
 	}
 
 	private static void HandleAssignmentExpression(
-		Context ctx,
+		ref Context ctx,
 		AssignmentExpressionSyntax syntax
 	)
 	{
@@ -108,7 +104,7 @@ public static class PropagationEngine
 	}
 
 	private static void HandleInvocationExpression(
-		Context ctx,
+		ref Context ctx,
 		InvocationExpressionSyntax syntax
 	)
 	{
@@ -149,7 +145,7 @@ public static class PropagationEngine
 	}
 
 	private static void HandleReturnStatement(
-		Context ctx,
+		ref Context ctx,
 		ReturnStatementSyntax syntax
 	)
 	{
