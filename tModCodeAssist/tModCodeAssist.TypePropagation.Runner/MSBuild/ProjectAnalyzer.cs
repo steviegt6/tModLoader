@@ -31,7 +31,7 @@ public sealed class ProjectAnalyzer(
 		}
 		while (changed);
 
-		return new SymbolTracker();
+		return tracker;
 	}
 
 	public void Dispose()
