@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using tModCodeAssist.Bindings;
 
@@ -46,16 +47,23 @@ public static class WellKnownSeedProvider
 			}
 
 			foreach (ISymbol? member in idType.GetMembers()) {
-				if (member is IFieldSymbol { IsStatic: true } field && PropagationEngine.IsNumericType(field.Type.SpecialType)) {
-					// Don't bother with the Count sentinels.
-					// TODO: They may be relevant again if we attempt to
-					//       annotate accesses to collections and similar
-					//       contexts?
-					if (field.Name == "Count")
-						continue;
+				if (member is not IFieldSymbol { IsStatic: true } field || !PropagationEngine.IsNumericType(field.Type.SpecialType))
+					continue;
 
-					yield return (field, idKind);
-				}
+				yield return (field, idKind);
+			}
+
+			if (idType.GetTypeMembers("Sets").FirstOrDefault() is not { } sets)
+				continue;
+
+			foreach (ISymbol? setMember in sets.GetMembers()) {
+				if (setMember is not IFieldSymbol { IsStatic: true } field)
+					continue;
+
+				if (field.Type is not IArrayTypeSymbol)
+					continue;
+
+				yield return (setMember, idKind);
 			}
 		}
 	}
