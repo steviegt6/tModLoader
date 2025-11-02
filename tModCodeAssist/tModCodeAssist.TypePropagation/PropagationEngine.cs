@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace tModCodeAssist.TypePropagation;
@@ -17,27 +18,24 @@ public static class PropagationEngine
 
 		public void Update(ISymbol symbol, IdKind kind)
 		{
-			if (kind == IdKind.Unknown)
+			if (kind == IdKind.Unknown || !kind.IsSingle())
+				return;
+
+			if (IsGenericOrArrayIndex(symbol))
 				return;
 
 			if (Tracker.TryUpdate(symbol, kind))
 				Changes++;
 		}
-
-		public void UpdateWithMerge(ISymbol symbol, IdKind inferredKind)
-		{
-			if (inferredKind == IdKind.Unknown || !inferredKind.IsSingle())
-				return;
-
-			IdKind existing = Tracker.GetKind(symbol);
-
-			if (inferredKind.IsAmbiguous() && existing != IdKind.Unknown)
-				return;
-
-			IdKind merged = existing.Merge(inferredKind);
-			Update(symbol, merged);
-		}
 	}
+
+	// This is a bit of a code-smell: contains types which we know will not
+	// contain members that should be mapped to ID types.  Should be kept small,
+	// only the bare minimum required to not produce erroneous maps or
+	// ambiguities.
+	private static readonly HashSet<string> blacklisted_types = [
+		"System.Array",
+	];
 
 	/// <summary>
 	///		Propagates type inference on the compilation, mutating the ctx.Tracker.
@@ -102,7 +100,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(right, left, ctx.Tracker))
 			return;
 
-		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
+		ctx.Update(left, ctx.Tracker.GetKind(right));
 	}
 
 	private static void HandleAssignmentExpression(
@@ -118,7 +116,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(right, left, ctx.Tracker))
 			return;
 
-		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
+		ctx.Update(left, ctx.Tracker.GetKind(right));
 	}
 
 	private static void HandleInvocationExpression(
@@ -140,11 +138,11 @@ public static class PropagationEngine
 
 			// param -> arg
 			if (ShouldPropagate(param, argSymbol, ctx.Tracker))
-				ctx.UpdateWithMerge(argSymbol, ctx.Tracker.GetKind(param));
+				ctx.Update(argSymbol, ctx.Tracker.GetKind(param));
 
 			// arg -> param
 			if (ShouldPropagate(argSymbol, param, ctx.Tracker))
-				ctx.UpdateWithMerge(param, ctx.Tracker.GetKind(argSymbol));
+				ctx.Update(param, ctx.Tracker.GetKind(argSymbol));
 		}
 
 		// a = Method(arg);
@@ -155,7 +153,7 @@ public static class PropagationEngine
 		if (left is null || !ShouldPropagate(method, left, ctx.Tracker))
 			return;
 
-		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(method));
+		ctx.Update(left, ctx.Tracker.GetKind(method));
 	}
 
 	private static void HandleReturnStatement(
@@ -175,7 +173,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(exprSymbol, method, ctx.Tracker))
 			return;
 
-		ctx.UpdateWithMerge(method, ctx.Tracker.GetKind(exprSymbol));
+		ctx.Update(method, ctx.Tracker.GetKind(exprSymbol));
 	}
 
 	private static bool ShouldPropagate(ISymbol? from, ISymbol? to, SymbolTracker tracker)
@@ -194,6 +192,9 @@ public static class PropagationEngine
 		if (!IsNumericOrEnum(fromType) || !IsNumericOrEnum(toType))
 			return false;
 
+		if (IsGenericOrArrayIndex(from) || IsGenericOrArrayIndex(to))
+			return false;
+
 		IdKind fromKind = tracker.GetKind(from);
 		if (!fromKind.IsSingle())
 			return false;
@@ -201,26 +202,33 @@ public static class PropagationEngine
 		return true;
 	}
 
+	private static bool IsGenericOrArrayIndex(ISymbol symbol)
+	{
+		// if it's in a generic type at all TODO: be more permissive?
+		if (symbol.ContainingType is { IsGenericType: true })
+			return true;
+
+		// generic methods
+		if (symbol is IParameterSymbol { ContainingSymbol: IMethodSymbol { IsGenericMethod: true } })
+			return true;
+
+		// type parameters, should never really pop up? but eh
+		if (symbol is ITypeParameterSymbol)
+			return true;
+
+		// compiler-generated variables and variables that are type params
+		if (symbol is ILocalSymbol local && (local.Name.StartsWith("<>") || local.Type.TypeKind == TypeKind.TypeParameter))
+			return true;
+
+		// array/pointer fields TODO: look into caring about these
+		if (symbol is IFieldSymbol field && (field.Type is IArrayTypeSymbol || field.Type is IPointerTypeSymbol))
+			return true;
+
+		return false;
+	}
+
 	private static bool IsNonValueSymbol(ISymbol symbol) =>
 		symbol is ITypeSymbol or INamespaceSymbol or IMethodSymbol;
-
-	/*
-	private static bool AreTypesCompatible(ISymbol? left, ISymbol? right, bool mustBeNumbers = true)
-	{
-		ITypeSymbol? leftType = GetTypeOf(left);
-		ITypeSymbol? rightRight = GetTypeOf(right);
-
-		if (leftType is null || rightRight is null)
-			return false;
-
-		if (mustBeNumbers && (!IsNumericType(leftType.SpecialType) || !IsNumericType(rightRight.SpecialType)))
-			return false;
-
-		return SymbolEqualityComparer.Default.Equals(leftType, rightRight)
-		    || leftType.InheritsFromOrEquals(rightRight)
-		    || rightRight.InheritsFromOrEquals(leftType);
-	}
-	*/
 
 	private static ITypeSymbol? GetTypeOf(ISymbol? symbol)
 	{
@@ -233,21 +241,6 @@ public static class PropagationEngine
 			_ => null,
 		};
 	}
-
-	/*
-	private static bool InheritsFromOrEquals(this ITypeSymbol self, ITypeSymbol other)
-	{
-		ITypeSymbol? current = self;
-		while (current is not null) {
-			if (SymbolEqualityComparer.Default.Equals(current, other))
-				return true;
-
-			current = current.BaseType;
-		}
-
-		return false;
-	}
-	*/
 
 	private static bool IsNumericOrEnum(ITypeSymbol type) =>
 		type.TypeKind == TypeKind.Enum || IsNumericType(type.SpecialType);
