@@ -35,7 +35,8 @@ public static class PropagationEngine
 	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_trysenddata = new(terraria_netmessage, "TrySendData");
 
 	private static readonly SymbolExceptionRegistry exception_registry =
-		new SymbolExceptionRegistry(SymbolDisplayFormat.MinimallyQualifiedFormat)
+		new SymbolExceptionRegistry()
+		   .WhitelistAssembly(tmodloader)
 		   .IgnoreParameters(terraria_netmessage_senddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
 		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7");
 

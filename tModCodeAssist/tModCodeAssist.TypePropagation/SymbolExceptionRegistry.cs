@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace tModCodeAssist.TypePropagation;
 
-public sealed class SymbolExceptionRegistry(SymbolDisplayFormat format)
+public sealed class SymbolExceptionRegistry
 {
 	public readonly record struct AssemblyIdentity(string AssemblyName);
 
@@ -31,7 +31,7 @@ public sealed class SymbolExceptionRegistry(SymbolDisplayFormat format)
 
 		var typeId = new TypeIdentity(
 			new AssemblyIdentity(containingAssembly.Name),
-			containingType.ToDisplayString(format)
+			containingType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
 		);
 
 		if (ignoredTypes.Contains(typeId))
@@ -40,7 +40,7 @@ public sealed class SymbolExceptionRegistry(SymbolDisplayFormat format)
 		if (symbol.ContainingSymbol is not IMethodSymbol method)
 			return false;
 
-		var methodId = new MethodIdentity(typeId, method.ToDisplayString(format));
+		var methodId = new MethodIdentity(typeId, method.Name);
 		if (ignoredMethods.Contains(methodId))
 			return true;
 
