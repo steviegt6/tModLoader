@@ -16,9 +16,10 @@ public sealed class ProjectAnalyzer(
 	Compilation compilation
 ) : IDisposable
 {
-	public SymbolTracker Run()
+	public SymbolTracker Run(out PropagationTraceGraph trace)
 	{
 		var tracker = new SymbolTracker();
+		trace = new PropagationTraceGraph();
 
 		foreach ((ISymbol symbol, IdKind kind) in WellKnownSeedProvider.GetSeedsForCompilation(compilation))
 			tracker.AddSeed(symbol, kind);
@@ -28,7 +29,12 @@ public sealed class ProjectAnalyzer(
 		do {
 			Console.Write($"Propagation iteration {i++}... ");
 			var sw = Stopwatch.StartNew();
-			changed = PropagationEngine.PropagateOnce(compilation, tracker, out int changes);
+			changed = PropagationEngine.PropagateOnce(
+				compilation,
+				tracker,
+				trace,
+				out int changes
+			);
 			sw.Stop();
 			Console.WriteLine($"{changes} change(s) (elapsed: {sw.Elapsed:g})");
 		}

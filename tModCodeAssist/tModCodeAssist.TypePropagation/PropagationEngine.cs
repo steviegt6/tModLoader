@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -12,20 +13,26 @@ namespace tModCodeAssist.TypePropagation;
 /// </summary>
 public static class PropagationEngine
 {
-	private record struct Context(SemanticModel Model, SymbolTracker Tracker, SymbolExceptionRegistry Exceptions)
+	private record struct Context(
+		SemanticModel Model,
+		SymbolTracker Tracker,
+		SymbolExceptionRegistry Exceptions,
+		PropagationTraceGraph Trace
+	)
 	{
 		public int Changes { get; set; }
 
-		public void Update(ISymbol symbol, IdKind kind)
+		public void Update(ISymbol from, ISymbol to, string reason)
 		{
+			IdKind kind = Tracker.GetKind(from);
 			if (kind == IdKind.Unknown || !kind.IsSingle())
 				return;
 
-			if (IsGenericOrArrayIndex(symbol))
+			if (!Tracker.TryUpdate(to, kind))
 				return;
 
-			if (Tracker.TryUpdate(symbol, kind))
-				Changes++;
+			Changes++;
+			Trace.Add(from, to, kind, reason);
 		}
 	}
 
@@ -33,20 +40,23 @@ public static class PropagationEngine
 	private static readonly SymbolExceptionRegistry.TypeIdentity terraria_netmessage = new(tmodloader, "Terraria.NetMessage");
 	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_senddata = new(terraria_netmessage, "SendData");
 	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_trysenddata = new(terraria_netmessage, "TrySendData");
+	private static readonly SymbolExceptionRegistry.TypeIdentity terraria_utils = new(tmodloader, "Terraria.Utils");
 
 	private static readonly SymbolExceptionRegistry exception_registry =
 		new SymbolExceptionRegistry()
 		   .WhitelistAssembly(tmodloader)
 		   .IgnoreParameters(terraria_netmessage_senddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
-		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7");
+		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
+		   .IgnoreType(terraria_utils);
 
 	/// <summary>
-	///		Propagates type inference on the compilation, mutating the ctx.Tracker.
+	///		Propagates type inference on the compilation, mutating the tracker.
 	/// </summary>
 	/// <returns>Whether any changes were made.</returns>
 	public static bool PropagateOnce(
 		Compilation compilation,
 		SymbolTracker tracker,
+		PropagationTraceGraph trace,
 		out int updates
 	)
 	{
@@ -56,7 +66,7 @@ public static class PropagationEngine
 			SemanticModel model = compilation.GetSemanticModel(tree);
 
 			foreach (SyntaxNode? node in tree.GetRoot().DescendantNodes()) {
-				var context = new Context(model, tracker, exception_registry);
+				var context = new Context(model, tracker, exception_registry, trace);
 
 				switch (node) {
 					// int a = b;
@@ -100,10 +110,11 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(ctx, right, left))
-			return;
+		if (ShouldPropagate(ctx, right, left))
+			ctx.Update(right, left, "Variable Declaration RL");
 
-		ctx.Update(left, ctx.Tracker.GetKind(right));
+		if (ShouldPropagate(ctx, left, right))
+			ctx.Update(left, right, "Variable Declaration LR");
 	}
 
 	private static void HandleAssignmentExpression(
@@ -116,10 +127,11 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(ctx, right, left))
-			return;
+		if (ShouldPropagate(ctx, right, left))
+			ctx.Update(right, left, "Assignment RL");
 
-		ctx.Update(left, ctx.Tracker.GetKind(right));
+		if (ShouldPropagate(ctx, left, right))
+			ctx.Update(left, right, "Assignment LR");
 	}
 
 	private static void HandleInvocationExpression(
@@ -135,17 +147,17 @@ public static class PropagationEngine
 			IParameterSymbol param = method.Parameters[i];
 			ExpressionSyntax argExpr = args[i].Expression;
 
-			ISymbol? argSymbol = ctx.Model.GetSymbolInfo(argExpr).Symbol;
-			if (argSymbol is null)
+			ISymbol? arg = ctx.Model.GetSymbolInfo(argExpr).Symbol;
+			if (arg is null)
 				continue;
 
 			// param -> arg
-			if (ShouldPropagate(ctx, param, argSymbol))
-				ctx.Update(argSymbol, ctx.Tracker.GetKind(param));
+			if (ShouldPropagate(ctx, param, arg))
+				ctx.Update(param, arg, $"Method({method.Name}).{param.Name} -> argument");
 
 			// arg -> param
-			if (ShouldPropagate(ctx, argSymbol, param))
-				ctx.Update(param, ctx.Tracker.GetKind(argSymbol));
+			if (ShouldPropagate(ctx, arg, param))
+				ctx.Update(arg, param, $"argument -> Method({method.Name}).{param.Name}");
 		}
 
 		// a = Method(arg);
@@ -156,7 +168,7 @@ public static class PropagationEngine
 		if (left is null || !ShouldPropagate(ctx, method, left))
 			return;
 
-		ctx.Update(left, ctx.Tracker.GetKind(method));
+		ctx.Update(method, left, $"x = Method({method.Name})");
 	}
 
 	private static void HandleReturnStatement(
@@ -176,7 +188,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(ctx, exprSymbol, method))
 			return;
 
-		ctx.Update(method, ctx.Tracker.GetKind(exprSymbol));
+		ctx.Update(exprSymbol, method, $"Method({method.Name}).return = x");
 	}
 
 	private static bool ShouldPropagate(Context ctx, ISymbol? from, ISymbol? to)

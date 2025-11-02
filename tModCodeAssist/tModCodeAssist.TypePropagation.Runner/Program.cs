@@ -27,13 +27,16 @@ internal static class Program
 
 		await Console.Out.WriteLineAsync("Running type propagation...");
 		var sw = Stopwatch.StartNew();
-		SymbolTracker tracker = analyzer.Run();
+		SymbolTracker tracker = analyzer.Run(out PropagationTraceGraph trace);
 		sw.Stop();
 		await Console.Out.WriteLineAsync($"Finished propagating types! Elapsed: {sw.Elapsed:g}");
 
-		TrackedSymbolDumper.ToJson(tracker, out string symbolData, out string seedData);
+		PropagationDumper.TrackedSymbolsToJson(tracker, out string symbolData, out string seedData);
 		await File.WriteAllTextAsync("symbols.json", symbolData);
 		await File.WriteAllTextAsync("seeds.json", seedData);
+
+		PropagationDumper.TraceGraphToJson(trace, out string traceData);
+		await File.WriteAllTextAsync("trace.json", traceData);
 
 		return 0;
 	}

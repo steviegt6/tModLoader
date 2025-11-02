@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace tModCodeAssist.TypePropagation.Runner;
 
-internal static class TrackedSymbolDumper
+internal static class PropagationDumper
 {
 	private static readonly JsonSerializerOptions json_options = new() { WriteIndented = true };
 
@@ -24,7 +24,21 @@ internal static class TrackedSymbolDumper
 		miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
 	);
 
-	public static void ToJson(SymbolTracker tracker, out string symbolData, out string seedData)
+	public static void TraceGraphToJson(PropagationTraceGraph trace, out string traceData)
+	{
+		var data = trace.AllEdges().Select(x => new {
+			Target = x.Key.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+			Incoming = x.Value.Select(y => new {
+				Source = y.Source.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+				y.PropagatedKind,
+				y.Reason,
+			}),
+		});
+
+		traceData = JsonSerializer.Serialize(data, json_options);
+	}
+
+	public static void TrackedSymbolsToJson(SymbolTracker tracker, out string symbolData, out string seedData)
 	{
 		Dictionary<string, Dictionary<string, Dictionary<string, string>>> symbols =
 			BuildTable(tracker.SymbolKinds.Where(x => !tracker.IsSeed(x.Key)));
@@ -46,8 +60,8 @@ internal static class TrackedSymbolDumper
 
 			string kindName = kind.ToString();
 			string asmName = symbol.ContainingAssembly?.Name ?? "<unknown>";
-			string typeName = symbol.ContainingType?.ToDisplayString(qualified_member_format)
-			               ?? symbol.ContainingNamespace?.ToDisplayString(qualified_member_format)
+			string typeName = symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
+			               ?? symbol.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
 			               ?? "<global>";
 			string symbolName = GetReadableSymbolName(symbol);
 
@@ -88,7 +102,7 @@ internal static class TrackedSymbolDumper
 			IParameterSymbol param => $"{((IMethodSymbol)param.ContainingSymbol).ToDisplayString(qualified_member_format)}.{param.Name}",
 			// MethodName(Type arg1, Type2 arg2)
 			IMethodSymbol method => method.ToDisplayString(qualified_member_format),
-			_ => symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+			_ => symbol.ToDisplayString(qualified_member_format),
 		};
 	}
 }
