@@ -46,6 +46,8 @@ public static class PropagationEngine
 		   .WhitelistAssembly(tmodloader)
 		   .IgnoreParameters(terraria_netmessage_senddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
 		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
+		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.ModLoader.ModBlockType"))
+		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.ModLoader.IO.ModBlockEntry"))
 		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.DataStructures.Point16"))
 		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.Utils"))
 		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.Utilities.UnifiedRandom"));

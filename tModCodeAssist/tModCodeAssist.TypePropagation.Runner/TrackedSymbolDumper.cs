@@ -30,8 +30,13 @@ internal static class PropagationDumper
 	{
 		var sb = new StringBuilder();
 
-		foreach ((ISymbol symbol, _) in tracker.SymbolKinds)
-			sb.AppendLine(trace.BuildReadableTrace(symbol, tracker));
+		foreach ((ISymbol symbol, _) in tracker.SymbolKinds) {
+			// null if no trace/nodes
+			if (trace.BuildReadableTrace(symbol, tracker) is not { } readableTrace)
+				continue;
+
+			sb.AppendLine(readableTrace);
+		}
 
 		traceData = sb.ToString();
 	}

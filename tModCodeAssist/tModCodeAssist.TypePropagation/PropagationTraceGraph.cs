@@ -46,13 +46,18 @@ public sealed class PropagationTraceGraph
 	private List<TraceNode> GetDirectTraces(ISymbol target) =>
 		traces.TryGetValue(target, out List<TraceNode>? list) ? list : [];
 
-	public string BuildReadableTrace(ISymbol target, SymbolTracker tracker)
+	public string? BuildReadableTrace(ISymbol target, SymbolTracker tracker)
 	{
 		List<TraceNode> rootTraces = BuildTraceTree(target);
+		if (rootTraces.Count == 0)
+			return null;
+
 		var sb = new StringBuilder();
 
 		if (target is ILocalSymbol local)
 			sb.Append(local.ContainingSymbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) + " local: ");
+		else if (target is IParameterSymbol parameter)
+			sb.Append(parameter.ContainingSymbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) + '.');
 
 		sb.AppendLine($"{target.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)} ({tracker.GetKind(target)})");
 

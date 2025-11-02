@@ -32,11 +32,8 @@ public static class WellKnownSeedProvider
 	];
 
 	/// <summary>
-	///		Gets well-defined seeds for a compilation from the basic data
-	///		defined in <see cref="MagicNumberBindings"/>.
+	///		Gets well-defined seeds for a compilation from the basic data.
 	/// </summary>
-	/// <param name="compilation"></param>
-	/// <returns></returns>
 	public static IEnumerable<(ISymbol symbol, IdKind kind)> GetSeedsForCompilation(Compilation compilation)
 	{
 		foreach (IdKind idKind in id_kinds) {
