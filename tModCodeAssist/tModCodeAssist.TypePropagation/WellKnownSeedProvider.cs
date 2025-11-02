@@ -39,7 +39,7 @@ public static class WellKnownSeedProvider
 	public static IEnumerable<(ISymbol symbol, IdKind kind)> GetSeedsForCompilation(Compilation compilation)
 	{
 		foreach (IdKind idKind in id_kinds) {
-			INamedTypeSymbol? idType = compilation.GetTypeByMetadataName(idKind.Name);
+			INamedTypeSymbol? idType = compilation.GetTypeByMetadataName(idKind.GetCorrespondingTypeName());
 			if (idType is null) {
 				Debug.Assert(idType is not null);
 				continue;

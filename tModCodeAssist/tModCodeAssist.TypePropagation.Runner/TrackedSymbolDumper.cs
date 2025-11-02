@@ -17,7 +17,7 @@ internal static class TrackedSymbolDumper
 			if (!IsSerializableSymbol(symbol))
 				continue;
 
-			string kindName = kind.Name;
+			string kindName = kind.ToString();
 			string asmName = symbol.ContainingAssembly?.Name ?? "<unknown>";
 			string typeName = symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) ?? "<global>";
 			string symbolName = GetReadableSymbolName(symbol);

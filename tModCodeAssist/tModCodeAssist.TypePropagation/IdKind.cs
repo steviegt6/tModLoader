@@ -1,111 +1,130 @@
 ﻿using System;
-using Terraria.ID;
+using System.Collections.Generic;
 
 namespace tModCodeAssist.TypePropagation;
 
 /// <summary>
 ///		Represents a reference to a well-defined magic number type/ID.
 /// </summary>
-public readonly record struct IdKind(string Name)
+[Flags]
+public enum IdKind : uint
 {
 	/// <summary>
-	///		Represents an unknown type, used in place of no entry if a value
-	///		must exist.
+	///		In place of no known ID.
 	/// </summary>
-	public static IdKind Unknown { get; } = new("<unknown>");
+	Unknown = 0,
 
 	/// <summary>
-	///		Represents an error case where a symbol is assigned more than one
-	///		symbol kind.
+	///     Corresponds to <see cref="Terraria.ID.BuffID"/>.
 	/// </summary>
-	public static IdKind Multiple { get; } = new("<multiple>");
-
-#region Terraria IDs
-	/// <summary>
-	///		Represents <see cref="Terraria.ID.BuffID"/>.
-	/// </summary>
-	public static IdKind BuffID { get; } = new(typeof(BuffID));
+	BuffID = 1 << 0,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.DustID"/>.
+	///     Corresponds to <see cref="Terraria.ID.DustID"/>.
 	/// </summary>
-	public static IdKind DustID { get; } = new(typeof(DustID));
+	DustID = 1 << 1,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ExtrasID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ExtrasID"/>.
 	/// </summary>
-	public static IdKind ExtrasID { get; } = new(typeof(ExtrasID));
+	ExtrasID = 1 << 2,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ItemID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ItemID"/>.
 	/// </summary>
-	public static IdKind ItemID { get; } = new(typeof(ItemID));
+	ItemID = 1 << 3,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ItemRarityID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ItemRarityID"/>.
 	/// </summary>
-	public static IdKind ItemRarityID { get; } = new(typeof(ItemRarityID));
+	ItemRarityID = 1 << 4,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ItemUseStyleID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ItemUseStyleID"/>.
 	/// </summary>
-	public static IdKind ItemUseStyleID { get; } = new(typeof(ItemUseStyleID));
+	ItemUseStyleID = 1 << 5,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.LiquidID"/>.
+	///     Corresponds to <see cref="Terraria.ID.LiquidID"/>.
 	/// </summary>
-	public static IdKind LiquidID { get; } = new(typeof(LiquidID));
+	LiquidID = 1 << 6,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.MessageID"/>.
+	///     Corresponds to <see cref="Terraria.ID.MessageID"/>.
 	/// </summary>
-	public static IdKind MessageID { get; } = new(typeof(MessageID));
+	MessageID = 1 << 7,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.MountID"/>.
+	///     Corresponds to <see cref="Terraria.ID.MountID"/>.
 	/// </summary>
-	public static IdKind MountID { get; } = new(typeof(MountID));
+	MountID = 1 << 8,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.NetmodeID"/>.
+	///     Corresponds to <see cref="Terraria.ID.NetmodeID"/>.
 	/// </summary>
-	public static IdKind NetmodeID { get; } = new(typeof(NetmodeID));
+	NetmodeID = 1 << 9,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.NPCAIStyleID"/>.
+	///     Corresponds to <see cref="Terraria.ID.NPCAIStyleID"/>.
 	/// </summary>
-	public static IdKind NPCAIStyleID { get; } = new(typeof(NPCAIStyleID));
+	NPCAIStyleID = 1 << 10,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.NPCID"/>.
+	///     Corresponds to <see cref="Terraria.ID.NPCID"/>.
 	/// </summary>
-	public static IdKind NPCID { get; } = new(typeof(NPCID));
+	NPCID = 1 << 11,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.PaintID"/>.
+	///     Corresponds to <see cref="Terraria.ID.PaintID"/>.
 	/// </summary>
-	public static IdKind PaintID { get; } = new(typeof(PaintID));
+	PaintID = 1 << 12,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ProjAIStyleID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ProjAIStyleID"/>.
 	/// </summary>
-	public static IdKind ProjAIStyleID { get; } = new(typeof(ProjAIStyleID));
+	ProjAIStyleID = 1 << 13,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.ProjectileID"/>.
+	///     Corresponds to <see cref="Terraria.ID.ProjectileID"/>.
 	/// </summary>
-	public static IdKind ProjectileID { get; } = new(typeof(ProjectileID));
+	ProjectileID = 1 << 14,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.TileID"/>.
+	///     Corresponds to <see cref="Terraria.ID.TileID"/>.
 	/// </summary>
-	public static IdKind TileID { get; } = new(typeof(TileID));
+	TileID = 1 << 15,
 
 	/// <summary>
-	///		Represents <see cref="Terraria.ID.WallID"/>.
+	///     Corresponds to <see cref="Terraria.ID.WallID"/>.
 	/// </summary>
-	public static IdKind WallID { get; } = new(typeof(WallID));
-#endregion
+	WallID = 1 << 16,
+}
 
-	private IdKind(Type type) : this(type.FullName ?? type.Name) { }
+internal static class IdKindExtensions
+{
+	private static readonly Dictionary<IdKind, Type> type_map = new() {
+		[IdKind.BuffID] = typeof(Terraria.ID.BuffID),
+		[IdKind.DustID] = typeof(Terraria.ID.DustID),
+		[IdKind.ExtrasID] = typeof(Terraria.ID.ExtrasID),
+		[IdKind.ItemID] = typeof(Terraria.ID.ItemID),
+		[IdKind.ItemRarityID] = typeof(Terraria.ID.ItemRarityID),
+		[IdKind.ItemUseStyleID] = typeof(Terraria.ID.ItemUseStyleID),
+		[IdKind.LiquidID] = typeof(Terraria.ID.LiquidID),
+		[IdKind.MessageID] = typeof(Terraria.ID.MessageID),
+		[IdKind.MountID] = typeof(Terraria.ID.MountID),
+		[IdKind.NetmodeID] = typeof(Terraria.ID.NetmodeID),
+		[IdKind.NPCAIStyleID] = typeof(Terraria.ID.NPCAIStyleID),
+		[IdKind.NPCID] = typeof(Terraria.ID.NPCID),
+		[IdKind.PaintID] = typeof(Terraria.ID.PaintID),
+		[IdKind.ProjAIStyleID] = typeof(Terraria.ID.ProjAIStyleID),
+		[IdKind.ProjectileID] = typeof(Terraria.ID.ProjectileID),
+		[IdKind.TileID] = typeof(Terraria.ID.TileID),
+		[IdKind.WallID] = typeof(Terraria.ID.WallID),
+	};
+
+	// Not very safe, only used when we know it's fine.
+	public static Type GetCorrespondingType(this IdKind @this) => type_map[@this];
+
+	public static string GetCorrespondingTypeName(this IdKind @this)
+		=> GetCorrespondingType(@this).FullName ?? throw new InvalidOperationException($"Couldn't get type name: {@this}");
 }

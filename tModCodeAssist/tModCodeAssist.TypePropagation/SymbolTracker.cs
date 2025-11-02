@@ -22,18 +22,18 @@ public sealed class SymbolTracker
 	/// <returns>Whether a change has been made.</returns>
 	public bool TryUpdate(ISymbol symbol, IdKind kind)
 	{
+		if (kind == IdKind.Unknown)
+			return false;
+
 		if (seeds.Contains(symbol))
 			return false;
 
 		if (SymbolKinds.TryGetValue(symbol, out IdKind existing)) {
-			if (existing == kind)
+			IdKind merged = existing | kind;
+			if (merged == existing)
 				return false;
 
-			if (existing == IdKind.Multiple)
-				return false;
-
-			// Error case.
-			SymbolKinds[symbol] = IdKind.Multiple;
+			SymbolKinds[symbol] = merged;
 			return true;
 		}
 
