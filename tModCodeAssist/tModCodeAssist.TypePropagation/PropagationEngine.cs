@@ -40,14 +40,15 @@ public static class PropagationEngine
 	private static readonly SymbolExceptionRegistry.TypeIdentity terraria_netmessage = new(tmodloader, "Terraria.NetMessage");
 	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_senddata = new(terraria_netmessage, "SendData");
 	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_trysenddata = new(terraria_netmessage, "TrySendData");
-	private static readonly SymbolExceptionRegistry.TypeIdentity terraria_utils = new(tmodloader, "Terraria.Utils");
 
 	private static readonly SymbolExceptionRegistry exception_registry =
 		new SymbolExceptionRegistry()
 		   .WhitelistAssembly(tmodloader)
 		   .IgnoreParameters(terraria_netmessage_senddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
 		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
-		   .IgnoreType(terraria_utils);
+		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.DataStructures.Point16"))
+		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.Utils"))
+		   .IgnoreType(new SymbolExceptionRegistry.TypeIdentity(tmodloader, "Terraria.Utilities.UnifiedRandom"));
 
 	/// <summary>
 	///		Propagates type inference on the compilation, mutating the tracker.
