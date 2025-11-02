@@ -21,30 +21,24 @@ public sealed class SymbolTracker
 	///		Attempts to mark a symbol as of a given symbol kind.
 	/// </summary>
 	/// <returns>Whether a change has been made.</returns>
-	public bool TryUpdate(ISymbol? symbol, IdKind kind)
+	public bool TryUpdate(ISymbol? symbol, IdKind newKind)
 	{
-		if (symbol is null || kind.IsUnknown())
+		if (symbol is null || newKind == IdKind.Unknown)
 			return false;
 
 		if (seeds.Contains(symbol))
 			return false;
 
-		if (SymbolKinds.TryGetValue(symbol, out IdKind existing)) {
-			if (kind.IsAmbiguous() && existing.IsSingle())
-				return false;
+		IdKind existing = GetKind(symbol);
 
-			IdKind merged = existing | kind;
-			if (merged.IsAmbiguous() && !existing.IsAmbiguous())
-				Console.WriteLine($"Ambiguity: {symbol.ToDisplayString()} merged {existing} + {kind} = {merged}");
+		IdKind merged = existing.Merge(newKind);
+		if (merged == existing)
+			return false;
 
-			if (merged == existing)
-				return false;
+		if (merged.IsAmbiguous() && !existing.IsAmbiguous())
+			Console.WriteLine($"Ambiguity: {symbol.ToDisplayString()} merged {existing} + {newKind} = {merged}");
 
-			SymbolKinds[symbol] = merged;
-			return true;
-		}
-
-		SymbolKinds[symbol] = kind;
+		SymbolKinds[symbol] = merged;
 		return true;
 	}
 

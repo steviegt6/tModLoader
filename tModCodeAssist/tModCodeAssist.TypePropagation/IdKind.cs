@@ -17,87 +17,89 @@ public enum IdKind : uint
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.BuffID"/>.
 	/// </summary>
-	BuffID = 1 << 0,
+	BuffID = 1u << 0,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.DustID"/>.
 	/// </summary>
-	DustID = 1 << 1,
+	DustID = 1u << 1,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ExtrasID"/>.
 	/// </summary>
-	ExtrasID = 1 << 2,
+	ExtrasID = 1u << 2,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ItemID"/>.
 	/// </summary>
-	ItemID = 1 << 3,
+	ItemID = 1u << 3,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ItemRarityID"/>.
 	/// </summary>
-	ItemRarityID = 1 << 4,
+	ItemRarityID = 1u << 4,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ItemUseStyleID"/>.
 	/// </summary>
-	ItemUseStyleID = 1 << 5,
+	ItemUseStyleID = 1u << 5,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.LiquidID"/>.
 	/// </summary>
-	LiquidID = 1 << 6,
+	LiquidID = 1u << 6,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.MessageID"/>.
 	/// </summary>
-	MessageID = 1 << 7,
+	MessageID = 1u << 7,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.MountID"/>.
 	/// </summary>
-	MountID = 1 << 8,
+	MountID = 1u << 8,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.NetmodeID"/>.
 	/// </summary>
-	NetmodeID = 1 << 9,
+	NetmodeID = 1u << 9,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.NPCAIStyleID"/>.
 	/// </summary>
-	NPCAIStyleID = 1 << 10,
+	NPCAIStyleID = 1u << 10,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.NPCID"/>.
 	/// </summary>
-	NPCID = 1 << 11,
+	NPCID = 1u << 11,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.PaintID"/>.
 	/// </summary>
-	PaintID = 1 << 12,
+	PaintID = 1u << 12,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ProjAIStyleID"/>.
 	/// </summary>
-	ProjAIStyleID = 1 << 13,
+	ProjAIStyleID = 1u << 13,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.ProjectileID"/>.
 	/// </summary>
-	ProjectileID = 1 << 14,
+	ProjectileID = 1u << 14,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.TileID"/>.
 	/// </summary>
-	TileID = 1 << 15,
+	TileID = 1u << 15,
 
 	/// <summary>
 	///     Corresponds to <see cref="Terraria.ID.WallID"/>.
 	/// </summary>
-	WallID = 1 << 16,
+	WallID = 1u << 16,
+
+	Ambiguous = 1u << 31,
 }
 
 public static class IdKindExtensions
@@ -129,48 +131,45 @@ public static class IdKindExtensions
 		=> GetCorrespondingType(kind).FullName ?? throw new InvalidOperationException($"Couldn't get type name: {kind}");
 
 	/// <summary>
-	///		Whether this kind is an unknown value.
-	/// </summary>
-	public static bool IsUnknown(this IdKind kind) => kind == IdKind.Unknown;
-
-	/// <summary>
 	///		Whether this kind is precise and represents only a single known
 	///		value.
 	/// </summary>
-	public static bool IsSingle(this IdKind kind) =>
-		!kind.IsUnknown() && (kind & (kind - 1)) == 0;
+	public static bool IsSingle(this IdKind kind)
+		=> CountBits((uint)(kind & ~IdKind.Ambiguous)) == 1;
 
 	/// <summary>
 	///		Whether this kind is ambiguous and represents multiple known values.
 	/// </summary>
 	public static bool IsAmbiguous(this IdKind kind) =>
-		!kind.IsUnknown() && !kind.IsSingle();
+		(kind & IdKind.Ambiguous) != 0;
 
 	/// <summary>
 	///		Merges the kinds, producing a new kind.
 	/// </summary>
 	public static IdKind Merge(this IdKind left, IdKind right)
 	{
-		if (left.IsUnknown())
+		if (left == IdKind.Unknown)
 			return right;
 
-		if (right.IsUnknown())
+		if (right == IdKind.Unknown)
 			return left;
 
-		return left | right;
+		IdKind merged = left | right;
+		if (CountBits((uint)(merged & ~IdKind.Ambiguous)) > 1)
+			merged |= IdKind.Ambiguous;
+
+		return merged;
 	}
 
-	/// <summary>
-	///		Determines if the source kind can propagate to the destination kind,
-	///		respecting rules regarding ambiguity in propagation.
-	/// </summary>
-	public static bool CanPropagateTo(this IdKind source, IdKind dest)
+	// https://stackoverflow.com/a/12171691
+	private static int CountBits(uint value)
 	{
-		// Only propagate precise information; if the destination is already
-		// known, do not propagate ambiguity.
-		if (source.IsAmbiguous())
-			return dest.IsUnknown();
+		int count = 0;
+		while (value != 0) {
+			count++;
+			value &= value - 1;
+		}
 
-		return true;
+		return count;
 	}
 }

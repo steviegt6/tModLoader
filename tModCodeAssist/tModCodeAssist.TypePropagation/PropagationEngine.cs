@@ -23,6 +23,20 @@ public static class PropagationEngine
 			if (Tracker.TryUpdate(symbol, kind))
 				Changes++;
 		}
+
+		public void UpdateWithMerge(ISymbol symbol, IdKind inferredKind)
+		{
+			if (inferredKind == IdKind.Unknown)
+				return;
+
+			IdKind existing = Tracker.GetKind(symbol);
+
+			if (inferredKind.IsAmbiguous() && existing != IdKind.Unknown)
+				return;
+
+			IdKind merged = existing.Merge(inferredKind);
+			Update(symbol, merged);
+		}
 	}
 
 	/// <summary>
@@ -88,8 +102,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(right, left))
 			return;
 
-		IdKind kind = ctx.Tracker.GetKind(right);
-		ctx.Update(left, kind);
+		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
 	}
 
 	private static void HandleAssignmentExpression(
@@ -105,8 +118,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(right, left))
 			return;
 
-		IdKind kind = ctx.Tracker.GetKind(right);
-		ctx.Update(left, kind);
+		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
 	}
 
 	private static void HandleInvocationExpression(
@@ -130,12 +142,10 @@ public static class PropagationEngine
 				continue;
 
 			// param -> arg
-			IdKind paramKind = ctx.Tracker.GetKind(param);
-			ctx.Update(argSymbol, paramKind);
+			ctx.UpdateWithMerge(argSymbol, ctx.Tracker.GetKind(param));
 
 			// arg -> param
-			IdKind argKind = ctx.Tracker.GetKind(argSymbol);
-			ctx.Update(param, argKind);
+			ctx.UpdateWithMerge(param, ctx.Tracker.GetKind(argSymbol));
 		}
 
 		// a = Method(arg);
@@ -146,8 +156,7 @@ public static class PropagationEngine
 		if (left is null || !ShouldPropagate(method, left))
 			return;
 
-		IdKind retKind = ctx.Tracker.GetKind(method);
-		ctx.Update(left, retKind);
+		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(method));
 	}
 
 	private static void HandleReturnStatement(
@@ -167,8 +176,7 @@ public static class PropagationEngine
 		if (!ShouldPropagate(exprSymbol, method))
 			return;
 
-		IdKind exprKind = ctx.Tracker.GetKind(exprSymbol);
-		ctx.Update(method, exprKind);
+		ctx.UpdateWithMerge(method, ctx.Tracker.GetKind(exprSymbol));
 	}
 
 	private static bool ShouldPropagate(ISymbol? from, ISymbol? to)
