@@ -9,6 +9,21 @@ internal static class TrackedSymbolDumper
 {
 	private static readonly JsonSerializerOptions json_options = new() { WriteIndented = true };
 
+	private static readonly SymbolDisplayFormat qualified_member_format = new(
+		globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+		typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameOnly,
+		genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters |
+		                 SymbolDisplayGenericsOptions.IncludeVariance,
+		memberOptions: SymbolDisplayMemberOptions.IncludeParameters |
+		               SymbolDisplayMemberOptions.IncludeContainingType |
+		               SymbolDisplayMemberOptions.IncludeExplicitInterface,
+		// no IncludeDefaultValue
+		parameterOptions: SymbolDisplayParameterOptions.IncludeType |
+		                  SymbolDisplayParameterOptions.IncludeName,
+		// turn int into System.Int32
+		miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
+	);
+
 	public static void ToJson(SymbolTracker tracker, out string symbolData, out string seedData)
 	{
 		Dictionary<string, Dictionary<string, Dictionary<string, string>>> symbols =
@@ -31,7 +46,9 @@ internal static class TrackedSymbolDumper
 
 			string kindName = kind.ToString();
 			string asmName = symbol.ContainingAssembly?.Name ?? "<unknown>";
-			string typeName = symbol.ContainingType?.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) ?? "<global>";
+			string typeName = symbol.ContainingType?.ToDisplayString(qualified_member_format)
+			               ?? symbol.ContainingNamespace?.ToDisplayString(qualified_member_format)
+			               ?? "<global>";
 			string symbolName = GetReadableSymbolName(symbol);
 
 			if (!result.TryGetValue(asmName, out Dictionary<string, Dictionary<string, string>>? typeDict))
@@ -68,9 +85,9 @@ internal static class TrackedSymbolDumper
 	{
 		return symbol switch {
 			// MethodName(Type arg1, Type2 arg2).arg1
-			IParameterSymbol param => $"{((IMethodSymbol)param.ContainingSymbol).ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}.{param.Name}",
+			IParameterSymbol param => $"{((IMethodSymbol)param.ContainingSymbol).ToDisplayString(qualified_member_format)}.{param.Name}",
 			// MethodName(Type arg1, Type2 arg2)
-			IMethodSymbol method => method.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+			IMethodSymbol method => method.ToDisplayString(qualified_member_format),
 			_ => symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
 		};
 	}

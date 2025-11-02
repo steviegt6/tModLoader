@@ -12,7 +12,7 @@ namespace tModCodeAssist.TypePropagation;
 /// </summary>
 public static class PropagationEngine
 {
-	private record struct Context(SemanticModel Model, SymbolTracker Tracker)
+	private record struct Context(SemanticModel Model, SymbolTracker Tracker, SymbolExceptionRegistry Exceptions)
 	{
 		public int Changes { get; set; }
 
@@ -29,10 +29,15 @@ public static class PropagationEngine
 		}
 	}
 
-	// TODO: Un-hardcode soon.
-	private static readonly HashSet<string> whitelisted_assemblies = [
-		"tModLoader",
-	];
+	private static readonly SymbolExceptionRegistry.AssemblyIdentity tmodloader = new("tModLoader");
+	private static readonly SymbolExceptionRegistry.TypeIdentity terraria_netmessage = new(tmodloader, "Terraria.NetMessage");
+	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_senddata = new(terraria_netmessage, "SendData");
+	private static readonly SymbolExceptionRegistry.MethodIdentity terraria_netmessage_trysenddata = new(terraria_netmessage, "TrySendData");
+
+	private static readonly SymbolExceptionRegistry exception_registry =
+		new SymbolExceptionRegistry(SymbolDisplayFormat.MinimallyQualifiedFormat)
+		   .IgnoreParameters(terraria_netmessage_senddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7")
+		   .IgnoreParameters(terraria_netmessage_trysenddata, "number", "number1", "number2", "number3", "number4", "number5", "number6", "number7");
 
 	/// <summary>
 	///		Propagates type inference on the compilation, mutating the ctx.Tracker.
@@ -50,7 +55,7 @@ public static class PropagationEngine
 			SemanticModel model = compilation.GetSemanticModel(tree);
 
 			foreach (SyntaxNode? node in tree.GetRoot().DescendantNodes()) {
-				var context = new Context(model, tracker);
+				var context = new Context(model, tracker, exception_registry);
 
 				switch (node) {
 					// int a = b;
@@ -94,7 +99,7 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(right, left, ctx.Tracker))
+		if (!ShouldPropagate(ctx, right, left))
 			return;
 
 		ctx.Update(left, ctx.Tracker.GetKind(right));
@@ -110,7 +115,7 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(right, left, ctx.Tracker))
+		if (!ShouldPropagate(ctx, right, left))
 			return;
 
 		ctx.Update(left, ctx.Tracker.GetKind(right));
@@ -134,11 +139,11 @@ public static class PropagationEngine
 				continue;
 
 			// param -> arg
-			if (ShouldPropagate(param, argSymbol, ctx.Tracker))
+			if (ShouldPropagate(ctx, param, argSymbol))
 				ctx.Update(argSymbol, ctx.Tracker.GetKind(param));
 
 			// arg -> param
-			if (ShouldPropagate(argSymbol, param, ctx.Tracker))
+			if (ShouldPropagate(ctx, argSymbol, param))
 				ctx.Update(param, ctx.Tracker.GetKind(argSymbol));
 		}
 
@@ -147,7 +152,7 @@ public static class PropagationEngine
 			return;
 
 		ISymbol? left = ctx.Model.GetSymbolInfo(retAssign.Left).Symbol;
-		if (left is null || !ShouldPropagate(method, left, ctx.Tracker))
+		if (left is null || !ShouldPropagate(ctx, method, left))
 			return;
 
 		ctx.Update(left, ctx.Tracker.GetKind(method));
@@ -167,13 +172,13 @@ public static class PropagationEngine
 		if (ctx.Model.GetEnclosingSymbol(expr.SpanStart) is not IMethodSymbol method)
 			return;
 
-		if (!ShouldPropagate(exprSymbol, method, ctx.Tracker))
+		if (!ShouldPropagate(ctx, exprSymbol, method))
 			return;
 
 		ctx.Update(method, ctx.Tracker.GetKind(exprSymbol));
 	}
 
-	private static bool ShouldPropagate(ISymbol? from, ISymbol? to, SymbolTracker tracker)
+	private static bool ShouldPropagate(Context ctx, ISymbol? from, ISymbol? to)
 	{
 		if (from is null || to is null)
 			return false;
@@ -192,11 +197,10 @@ public static class PropagationEngine
 		if (IsGenericOrArrayIndex(from) || IsGenericOrArrayIndex(to))
 			return false;
 
-		if ((from.ContainingType?.ContainingAssembly is null || !whitelisted_assemblies.Contains(from.ContainingType.ContainingAssembly.Name)) ||
-		    (to.ContainingType?.ContainingAssembly is null || !whitelisted_assemblies.Contains(to.ContainingType.ContainingAssembly.Name)))
+		if (ctx.Exceptions.ShouldIgnore(from) || ctx.Exceptions.ShouldIgnore(to))
 			return false;
 
-		IdKind fromKind = tracker.GetKind(from);
+		IdKind fromKind = ctx.Tracker.GetKind(from);
 		if (!fromKind.IsSingle())
 			return false;
 
