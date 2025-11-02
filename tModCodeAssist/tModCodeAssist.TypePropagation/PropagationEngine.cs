@@ -29,19 +29,9 @@ public static class PropagationEngine
 		}
 	}
 
-	// This is a bit of a code-smell: contains types which we know will not
-	// contain members that should be mapped to ID types.  Should be kept small,
-	// only the bare minimum required to not produce erroneous maps or
-	// ambiguities.
-	// TODO: Change logic to only care about the first input project?  Should we
-	//       support mods in the future, though?
-	private static readonly HashSet<string> blacklisted_types = [
-		"System.Array",
-		"System.Linq.Enumerable",
-		"System.IO.BinaryWriter",
-		"System.Math",
-		"System.IO.Stream",
-		"System.IO.FileStream",
+	// TODO: Un-hardcode soon.
+	private static readonly HashSet<string> whitelisted_assemblies = [
+		"tModLoader",
 	];
 
 	/// <summary>
@@ -202,8 +192,8 @@ public static class PropagationEngine
 		if (IsGenericOrArrayIndex(from) || IsGenericOrArrayIndex(to))
 			return false;
 
-		if ((from.ContainingType != null && blacklisted_types.Contains(from.ContainingType.ToDisplayString())) ||
-		    (to.ContainingType != null && blacklisted_types.Contains(to.ContainingType.ToDisplayString())))
+		if ((from.ContainingType?.ContainingAssembly is null || !whitelisted_assemblies.Contains(from.ContainingType.ContainingAssembly.Name)) ||
+		    (to.ContainingType?.ContainingAssembly is null || !whitelisted_assemblies.Contains(to.ContainingType.ContainingAssembly.Name)))
 			return false;
 
 		IdKind fromKind = tracker.GetKind(from);
