@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
 namespace tModCodeAssist.TypePropagation;
@@ -20,16 +21,22 @@ public sealed class SymbolTracker
 	///		Attempts to mark a symbol as of a given symbol kind.
 	/// </summary>
 	/// <returns>Whether a change has been made.</returns>
-	public bool TryUpdate(ISymbol symbol, IdKind kind)
+	public bool TryUpdate(ISymbol? symbol, IdKind kind)
 	{
-		if (kind == IdKind.Unknown)
+		if (symbol is null || kind.IsUnknown())
 			return false;
 
 		if (seeds.Contains(symbol))
 			return false;
 
 		if (SymbolKinds.TryGetValue(symbol, out IdKind existing)) {
+			if (kind.IsAmbiguous() && existing.IsSingle())
+				return false;
+
 			IdKind merged = existing | kind;
+			if (merged.IsAmbiguous() && !existing.IsAmbiguous())
+				Console.WriteLine($"Ambiguity: {symbol.ToDisplayString()} merged {existing} + {kind} = {merged}");
+
 			if (merged == existing)
 				return false;
 

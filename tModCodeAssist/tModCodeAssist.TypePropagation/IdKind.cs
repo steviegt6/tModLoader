@@ -100,7 +100,7 @@ public enum IdKind : uint
 	WallID = 1 << 16,
 }
 
-internal static class IdKindExtensions
+public static class IdKindExtensions
 {
 	private static readonly Dictionary<IdKind, Type> type_map = new() {
 		[IdKind.BuffID] = typeof(Terraria.ID.BuffID),
@@ -123,8 +123,54 @@ internal static class IdKindExtensions
 	};
 
 	// Not very safe, only used when we know it's fine.
-	public static Type GetCorrespondingType(this IdKind @this) => type_map[@this];
+	private static Type GetCorrespondingType(this IdKind kind) => type_map[kind];
 
-	public static string GetCorrespondingTypeName(this IdKind @this)
-		=> GetCorrespondingType(@this).FullName ?? throw new InvalidOperationException($"Couldn't get type name: {@this}");
+	internal static string GetCorrespondingTypeName(this IdKind kind)
+		=> GetCorrespondingType(kind).FullName ?? throw new InvalidOperationException($"Couldn't get type name: {kind}");
+
+	/// <summary>
+	///		Whether this kind is an unknown value.
+	/// </summary>
+	public static bool IsUnknown(this IdKind kind) => kind == IdKind.Unknown;
+
+	/// <summary>
+	///		Whether this kind is precise and represents only a single known
+	///		value.
+	/// </summary>
+	public static bool IsSingle(this IdKind kind) =>
+		!kind.IsUnknown() && (kind & (kind - 1)) == 0;
+
+	/// <summary>
+	///		Whether this kind is ambiguous and represents multiple known values.
+	/// </summary>
+	public static bool IsAmbiguous(this IdKind kind) =>
+		!kind.IsUnknown() && !kind.IsSingle();
+
+	/// <summary>
+	///		Merges the kinds, producing a new kind.
+	/// </summary>
+	public static IdKind Merge(this IdKind left, IdKind right)
+	{
+		if (left.IsUnknown())
+			return right;
+
+		if (right.IsUnknown())
+			return left;
+
+		return left | right;
+	}
+
+	/// <summary>
+	///		Determines if the source kind can propagate to the destination kind,
+	///		respecting rules regarding ambiguity in propagation.
+	/// </summary>
+	public static bool CanPropagateTo(this IdKind source, IdKind dest)
+	{
+		// Only propagate precise information; if the destination is already
+		// known, do not propagate ambiguity.
+		if (source.IsAmbiguous())
+			return dest.IsUnknown();
+
+		return true;
+	}
 }
