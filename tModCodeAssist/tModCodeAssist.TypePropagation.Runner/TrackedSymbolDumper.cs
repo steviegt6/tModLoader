@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 
@@ -8,12 +9,23 @@ internal static class TrackedSymbolDumper
 {
 	private static readonly JsonSerializerOptions json_options = new() { WriteIndented = true };
 
-	public static string ToJson(SymbolTracker tracker)
+	public static void ToJson(SymbolTracker tracker, out string symbolData, out string seedData)
+	{
+		Dictionary<string, Dictionary<string, Dictionary<string, string>>> symbols =
+			BuildTable(tracker.SymbolKinds.Where(x => !tracker.IsSeed(x.Key)));
+		Dictionary<string, Dictionary<string, Dictionary<string, string>>> seeds =
+			BuildTable(tracker.SymbolKinds.Where(x => tracker.IsSeed(x.Key)));
+
+		symbolData = JsonSerializer.Serialize(symbols, json_options);
+		seedData = JsonSerializer.Serialize(seeds, json_options);
+	}
+
+	private static Dictionary<string, Dictionary<string, Dictionary<string, string>>> BuildTable(IEnumerable<KeyValuePair<ISymbol, IdKind>> data)
 	{
 		// assembly -> type -> symbol -> data (w/ kind)
 		var result = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
 
-		foreach ((ISymbol symbol, IdKind kind) in tracker.SymbolKinds) {
+		foreach ((ISymbol symbol, IdKind kind) in data) {
 			if (!IsSerializableSymbol(symbol))
 				continue;
 
@@ -31,7 +43,7 @@ internal static class TrackedSymbolDumper
 			symbolsDict[symbolName] = kindName;
 		}
 
-		return JsonSerializer.Serialize(result, json_options);
+		return result;
 	}
 
 	private static bool IsSerializableSymbol(ISymbol symbol)

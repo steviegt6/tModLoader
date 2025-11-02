@@ -31,7 +31,9 @@ internal static class Program
 		sw.Stop();
 		await Console.Out.WriteLineAsync($"Finished propagating types! Elapsed: {sw.Elapsed:g}");
 
-		await File.WriteAllTextAsync("symbols.json", TrackedSymbolDumper.ToJson(tracker));
+		TrackedSymbolDumper.ToJson(tracker, out string symbolData, out string seedData);
+		await File.WriteAllTextAsync("symbols.json", symbolData);
+		await File.WriteAllTextAsync("seeds.json", seedData);
 
 		return 0;
 	}
