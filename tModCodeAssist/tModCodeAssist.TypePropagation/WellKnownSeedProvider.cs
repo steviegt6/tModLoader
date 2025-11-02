@@ -46,22 +46,10 @@ public static class WellKnownSeedProvider
 			}
 
 			foreach (ISymbol? member in idType.GetMembers()) {
-				if (member is IFieldSymbol { IsStatic: true } field && IsIntegerType(field.Type.SpecialType)) {
+				if (member is IFieldSymbol { IsStatic: true } field && PropagationEngine.IsNumericType(field.Type.SpecialType)) {
 					yield return (field, idKind);
 				}
 			}
 		}
-	}
-
-	private static bool IsIntegerType(SpecialType type)
-	{
-		return type is SpecialType.System_Byte
-		            or SpecialType.System_SByte
-		            or SpecialType.System_Int16
-		            or SpecialType.System_UInt16
-		            or SpecialType.System_Int32
-		            or SpecialType.System_UInt32
-		            or SpecialType.System_Int64
-		            or SpecialType.System_UInt64;
 	}
 }

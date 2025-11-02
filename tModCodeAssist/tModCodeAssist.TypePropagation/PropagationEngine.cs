@@ -85,6 +85,9 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
+		if (!ShouldPropagate(right, left))
+			return;
+
 		IdKind kind = ctx.Tracker.GetKind(right);
 		ctx.Update(left, kind);
 	}
@@ -97,6 +100,9 @@ public static class PropagationEngine
 		ISymbol? left = ctx.Model.GetSymbolInfo(syntax.Left).Symbol;
 		ISymbol? right = ctx.Model.GetSymbolInfo(syntax.Right).Symbol;
 		if (left is null || right is null)
+			return;
+
+		if (!ShouldPropagate(right, left))
 			return;
 
 		IdKind kind = ctx.Tracker.GetKind(right);
@@ -120,15 +126,16 @@ public static class PropagationEngine
 			if (argSymbol is null)
 				continue;
 
+			if (!ShouldPropagate(argSymbol, param))
+				continue;
+
 			// param -> arg
 			IdKind paramKind = ctx.Tracker.GetKind(param);
-			if (paramKind != IdKind.Unknown)
-				ctx.Update(argSymbol, paramKind);
+			ctx.Update(argSymbol, paramKind);
 
 			// arg -> param
 			IdKind argKind = ctx.Tracker.GetKind(argSymbol);
-			if (argKind != IdKind.Unknown)
-				ctx.Update(param, argKind);
+			ctx.Update(param, argKind);
 		}
 
 		// a = Method(arg);
@@ -136,12 +143,11 @@ public static class PropagationEngine
 			return;
 
 		ISymbol? left = ctx.Model.GetSymbolInfo(retAssign.Left).Symbol;
-		if (left is null)
+		if (left is null || !ShouldPropagate(method, left))
 			return;
 
 		IdKind retKind = ctx.Tracker.GetKind(method);
-		if (retKind != IdKind.Unknown)
-			ctx.Update(left, retKind);
+		ctx.Update(left, retKind);
 	}
 
 	private static void HandleReturnStatement(
@@ -155,11 +161,95 @@ public static class PropagationEngine
 		if (ctx.Model.GetSymbolInfo(expr).Symbol is not { } exprSymbol)
 			return;
 
-		IdKind exprKind = ctx.Tracker.GetKind(exprSymbol);
-		if (exprKind == IdKind.Unknown)
+		if (ctx.Model.GetEnclosingSymbol(expr.SpanStart) is not IMethodSymbol method)
 			return;
 
-		if (ctx.Model.GetEnclosingSymbol(expr.SpanStart) is IMethodSymbol method)
-			ctx.Update(method, exprKind);
+		if (!ShouldPropagate(exprSymbol, method))
+			return;
+
+		IdKind exprKind = ctx.Tracker.GetKind(exprSymbol);
+		ctx.Update(method, exprKind);
+	}
+
+	private static bool ShouldPropagate(ISymbol? from, ISymbol? to)
+	{
+		if (from is null || to is null)
+			return false;
+
+		if (IsNonValueSymbol(from) || IsNonValueSymbol(to))
+			return false;
+
+		ITypeSymbol? fromType = GetTypeOf(from);
+		ITypeSymbol? toType = GetTypeOf(to);
+		if (fromType == null || toType == null)
+			return false;
+
+		if (!IsNumericOrEnum(fromType) || !IsNumericOrEnum(toType))
+			return false;
+
+		return true;
+	}
+
+	private static bool IsNonValueSymbol(ISymbol symbol) =>
+		symbol is ITypeSymbol or INamespaceSymbol or IMethodSymbol;
+
+	/*
+	private static bool AreTypesCompatible(ISymbol? left, ISymbol? right, bool mustBeNumbers = true)
+	{
+		ITypeSymbol? leftType = GetTypeOf(left);
+		ITypeSymbol? rightRight = GetTypeOf(right);
+
+		if (leftType is null || rightRight is null)
+			return false;
+
+		if (mustBeNumbers && (!IsNumericType(leftType.SpecialType) || !IsNumericType(rightRight.SpecialType)))
+			return false;
+
+		return SymbolEqualityComparer.Default.Equals(leftType, rightRight)
+		    || leftType.InheritsFromOrEquals(rightRight)
+		    || rightRight.InheritsFromOrEquals(leftType);
+	}
+	*/
+
+	private static ITypeSymbol? GetTypeOf(ISymbol? symbol)
+	{
+		return symbol switch {
+			IFieldSymbol field => field.Type,
+			IPropertySymbol property => property.Type,
+			IParameterSymbol parameter => parameter.Type,
+			ILocalSymbol local => local.Type,
+			IMethodSymbol method => method.ReturnType,
+			_ => null,
+		};
+	}
+
+	/*
+	private static bool InheritsFromOrEquals(this ITypeSymbol self, ITypeSymbol other)
+	{
+		ITypeSymbol? current = self;
+		while (current is not null) {
+			if (SymbolEqualityComparer.Default.Equals(current, other))
+				return true;
+
+			current = current.BaseType;
+		}
+
+		return false;
+	}
+	*/
+
+	private static bool IsNumericOrEnum(ITypeSymbol type) =>
+		type.TypeKind == TypeKind.Enum || IsNumericType(type.SpecialType);
+
+	internal static bool IsNumericType(SpecialType type)
+	{
+		return type is SpecialType.System_Byte
+		            or SpecialType.System_SByte
+		            or SpecialType.System_Int16
+		            or SpecialType.System_UInt16
+		            or SpecialType.System_Int32
+		            or SpecialType.System_UInt32
+		            or SpecialType.System_Int64
+		            or SpecialType.System_UInt64;
 	}
 }

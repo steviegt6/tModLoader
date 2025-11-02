@@ -21,7 +21,7 @@ public sealed class ProjectAnalyzer(
 		var tracker = new SymbolTracker();
 
 		foreach ((ISymbol symbol, IdKind kind) in WellKnownSeedProvider.GetSeedsForCompilation(compilation))
-			tracker.TryUpdate(symbol, kind);
+			tracker.AddSeed(symbol, kind);
 
 		bool changed;
 		int i = 0;

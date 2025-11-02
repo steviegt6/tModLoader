@@ -14,12 +14,17 @@ public sealed class SymbolTracker
 	// TODO: Is this behavior desirable?
 	public Dictionary<ISymbol, IdKind> SymbolKinds { get; } = new(SymbolEqualityComparer.IncludeNullability);
 
+	private readonly HashSet<ISymbol> seeds = new(SymbolEqualityComparer.IncludeNullability);
+
 	/// <summary>
 	///		Attempts to mark a symbol as of a given symbol kind.
 	/// </summary>
 	/// <returns>Whether a change has been made.</returns>
 	public bool TryUpdate(ISymbol symbol, IdKind kind)
 	{
+		if (seeds.Contains(symbol))
+			return false;
+
 		if (SymbolKinds.TryGetValue(symbol, out IdKind existing)) {
 			if (existing == kind)
 				return false;
@@ -37,9 +42,24 @@ public sealed class SymbolTracker
 	}
 
 	/// <summary>
+	///		Adds a seed value which may not be overwritten, creating a canonical
+	///		symbol-kind relation.
+	/// </summary>
+	public void AddSeed(ISymbol symbol, IdKind kind)
+	{
+		SymbolKinds[symbol] = kind;
+		seeds.Add(symbol);
+	}
+
+	/// <summary>
 	///		Gets the <see cref="IdKind"/> of a symbol.
 	/// </summary>
 	/// <returns>The symbol kind, or <see cref="IdKind.Unknown"/>.</returns>
 	public IdKind GetKind(ISymbol symbol) =>
 		SymbolKinds.TryGetValue(symbol, out IdKind kind) ? kind : IdKind.Unknown;
+
+	/// <summary>
+	///		Whether this symbol is an immutable seed value.
+	/// </summary>
+	public bool IsSeed(ISymbol symbol) => seeds.Contains(symbol);
 }
