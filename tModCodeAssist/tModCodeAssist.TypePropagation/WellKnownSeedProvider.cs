@@ -47,6 +47,13 @@ public static class WellKnownSeedProvider
 
 			foreach (ISymbol? member in idType.GetMembers()) {
 				if (member is IFieldSymbol { IsStatic: true } field && PropagationEngine.IsNumericType(field.Type.SpecialType)) {
+					// Don't bother with the Count sentinels.
+					// TODO: They may be relevant again if we attempt to
+					//       annotate accesses to collections and similar
+					//       contexts?
+					if (field.Name == "Count")
+						continue;
+
 					yield return (field, idKind);
 				}
 			}
