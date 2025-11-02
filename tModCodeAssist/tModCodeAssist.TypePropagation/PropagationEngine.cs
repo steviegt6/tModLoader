@@ -26,7 +26,7 @@ public static class PropagationEngine
 
 		public void UpdateWithMerge(ISymbol symbol, IdKind inferredKind)
 		{
-			if (inferredKind == IdKind.Unknown)
+			if (inferredKind == IdKind.Unknown || !inferredKind.IsSingle())
 				return;
 
 			IdKind existing = Tracker.GetKind(symbol);
@@ -99,7 +99,7 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(right, left))
+		if (!ShouldPropagate(right, left, ctx.Tracker))
 			return;
 
 		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
@@ -115,7 +115,7 @@ public static class PropagationEngine
 		if (left is null || right is null)
 			return;
 
-		if (!ShouldPropagate(right, left))
+		if (!ShouldPropagate(right, left, ctx.Tracker))
 			return;
 
 		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(right));
@@ -138,14 +138,13 @@ public static class PropagationEngine
 			if (argSymbol is null)
 				continue;
 
-			if (!ShouldPropagate(argSymbol, param))
-				continue;
-
 			// param -> arg
-			ctx.UpdateWithMerge(argSymbol, ctx.Tracker.GetKind(param));
+			if (ShouldPropagate(param, argSymbol, ctx.Tracker))
+				ctx.UpdateWithMerge(argSymbol, ctx.Tracker.GetKind(param));
 
 			// arg -> param
-			ctx.UpdateWithMerge(param, ctx.Tracker.GetKind(argSymbol));
+			if (ShouldPropagate(argSymbol, param, ctx.Tracker))
+				ctx.UpdateWithMerge(param, ctx.Tracker.GetKind(argSymbol));
 		}
 
 		// a = Method(arg);
@@ -153,7 +152,7 @@ public static class PropagationEngine
 			return;
 
 		ISymbol? left = ctx.Model.GetSymbolInfo(retAssign.Left).Symbol;
-		if (left is null || !ShouldPropagate(method, left))
+		if (left is null || !ShouldPropagate(method, left, ctx.Tracker))
 			return;
 
 		ctx.UpdateWithMerge(left, ctx.Tracker.GetKind(method));
@@ -173,13 +172,13 @@ public static class PropagationEngine
 		if (ctx.Model.GetEnclosingSymbol(expr.SpanStart) is not IMethodSymbol method)
 			return;
 
-		if (!ShouldPropagate(exprSymbol, method))
+		if (!ShouldPropagate(exprSymbol, method, ctx.Tracker))
 			return;
 
 		ctx.UpdateWithMerge(method, ctx.Tracker.GetKind(exprSymbol));
 	}
 
-	private static bool ShouldPropagate(ISymbol? from, ISymbol? to)
+	private static bool ShouldPropagate(ISymbol? from, ISymbol? to, SymbolTracker tracker)
 	{
 		if (from is null || to is null)
 			return false;
@@ -193,6 +192,10 @@ public static class PropagationEngine
 			return false;
 
 		if (!IsNumericOrEnum(fromType) || !IsNumericOrEnum(toType))
+			return false;
+
+		IdKind fromKind = tracker.GetKind(from);
+		if (!fromKind.IsSingle())
 			return false;
 
 		return true;
