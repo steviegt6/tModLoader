@@ -35,7 +35,7 @@ internal static class Program
 		await File.WriteAllTextAsync("symbols.json", symbolData);
 		await File.WriteAllTextAsync("seeds.json", seedData);
 
-		PropagationDumper.TraceGraphToJson(trace, out string traceData);
+		PropagationDumper.PrettyPrintTraceGraph(trace, tracker, out string traceData);
 		await File.WriteAllTextAsync("trace.json", traceData);
 
 		return 0;

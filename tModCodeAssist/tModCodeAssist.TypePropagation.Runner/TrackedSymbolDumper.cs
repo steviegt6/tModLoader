@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 
@@ -7,7 +9,7 @@ namespace tModCodeAssist.TypePropagation.Runner;
 
 internal static class PropagationDumper
 {
-	private static readonly JsonSerializerOptions json_options = new() { WriteIndented = true };
+	private static readonly JsonSerializerOptions json_options = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
 	private static readonly SymbolDisplayFormat qualified_member_format = new(
 		globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
@@ -24,18 +26,14 @@ internal static class PropagationDumper
 		miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes
 	);
 
-	public static void TraceGraphToJson(PropagationTraceGraph trace, out string traceData)
+	public static void PrettyPrintTraceGraph(PropagationTraceGraph trace, SymbolTracker tracker, out string traceData)
 	{
-		var data = trace.AllEdges().Select(x => new {
-			Target = x.Key.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-			Incoming = x.Value.Select(y => new {
-				Source = y.Source.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-				y.PropagatedKind,
-				y.Reason,
-			}),
-		});
+		var sb = new StringBuilder();
 
-		traceData = JsonSerializer.Serialize(data, json_options);
+		foreach ((ISymbol symbol, _) in tracker.SymbolKinds)
+			sb.AppendLine(trace.BuildReadableTrace(symbol, tracker));
+
+		traceData = sb.ToString();
 	}
 
 	public static void TrackedSymbolsToJson(SymbolTracker tracker, out string symbolData, out string seedData)

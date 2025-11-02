@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
 
 namespace tModCodeAssist.TypePropagation;
@@ -9,20 +11,67 @@ namespace tModCodeAssist.TypePropagation;
 /// </summary>
 public sealed class PropagationTraceGraph
 {
-	public sealed record TraceEdge(ISymbol Source, ISymbol Target, IdKind PropagatedKind, string Reason);
+	public readonly record struct TraceNode(
+		ISymbol Source,
+		IdKind Kind,
+		string Reason,
+		List<TraceNode> SourceTrace
+	);
 
-	private readonly Dictionary<ISymbol, List<TraceEdge>> edges = new(SymbolEqualityComparer.IncludeNullability);
+	private readonly Dictionary<ISymbol, List<TraceNode>> traces = new(SymbolEqualityComparer.IncludeNullability);
 
-	public void Add(ISymbol source, ISymbol target, IdKind kind, string reason)
+	public void AddTrace(ISymbol source, ISymbol target, IdKind kind, string reason)
 	{
-		if (!edges.TryGetValue(target, out List<TraceEdge>? list))
-			edges[target] = list = [];
+		if (!traces.TryGetValue(target, out List<TraceNode>? list))
+			traces[target] = list = [];
 
-		list.Add(new TraceEdge(source,  target, kind, reason));
+		list.Add(new TraceNode(source, kind, reason, []));
 	}
 
-	public IEnumerable<TraceEdge> GetIncoming(ISymbol symbol) =>
-		edges.TryGetValue(symbol, out List<TraceEdge>? list) ? list : [];
+	public List<TraceNode> BuildTraceTree(ISymbol target, HashSet<ISymbol>? visited = null)
+	{
+		visited ??= new HashSet<ISymbol>(SymbolEqualityComparer.IncludeNullability);
+		if (!visited.Add(target))
+			return [];
 
-	public IEnumerable<KeyValuePair<ISymbol, List<TraceEdge>>> AllEdges() => edges;
+		var result = new List<TraceNode>();
+
+		foreach (TraceNode node in GetDirectTraces(target))
+			result.Add(node with { SourceTrace = BuildTraceTree(node.Source, visited) });
+
+		visited.Remove(target);
+		return result;
+	}
+
+	private List<TraceNode> GetDirectTraces(ISymbol target) =>
+		traces.TryGetValue(target, out List<TraceNode>? list) ? list : [];
+
+	public string BuildReadableTrace(ISymbol target, SymbolTracker tracker)
+	{
+		List<TraceNode> rootTraces = BuildTraceTree(target);
+		var sb = new StringBuilder();
+
+		if (target is ILocalSymbol local)
+			sb.Append(local.ContainingSymbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) + " local: ");
+
+		sb.AppendLine($"{target.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)} ({tracker.GetKind(target)})");
+
+		for (int i = 0; i < rootTraces.Count; i++) {
+			string prefix = (i == rootTraces.Count - 1) ? "└── " : "├── ";
+			RenderTraceNode(rootTraces[i], sb, prefix, "");
+		}
+
+		return sb.ToString();
+	}
+
+	private static void RenderTraceNode(TraceNode node, StringBuilder sb, string prefix, string indent)
+	{
+		sb.AppendLine($"{indent}{prefix}{node.Source.ToDisplayString()} ({node.Kind}) [{node.Reason}]");
+
+		for (int i = 0; i < node.SourceTrace.Count; i++) {
+			string nextPrefix = (i == node.SourceTrace.Count - 1) ? "└── " : "├── ";
+			string nextIndent = indent + (prefix == "└── " ? "    " : "│   ");
+			RenderTraceNode(node.SourceTrace[i], sb, nextPrefix, nextIndent);
+		}
+	}
 }

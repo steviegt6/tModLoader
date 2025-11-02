@@ -32,7 +32,7 @@ public static class PropagationEngine
 				return;
 
 			Changes++;
-			Trace.Add(from, to, kind, reason);
+			Trace.AddTrace(from, to, kind, reason);
 		}
 	}
 
