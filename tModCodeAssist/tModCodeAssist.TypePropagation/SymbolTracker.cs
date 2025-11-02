@@ -12,7 +12,7 @@ public sealed class SymbolTracker
 	// IncludeNullability means symbols representing int and int? will not be
 	// considered equal.
 	// TODO: Is this behavior desirable?
-	private readonly Dictionary<ISymbol, IdKind> symbolKinds = new(SymbolEqualityComparer.IncludeNullability);
+	public Dictionary<ISymbol, IdKind> SymbolKinds { get; } = new(SymbolEqualityComparer.IncludeNullability);
 
 	/// <summary>
 	///		Attempts to mark a symbol as of a given symbol kind.
@@ -20,7 +20,7 @@ public sealed class SymbolTracker
 	/// <returns>Whether a change has been made.</returns>
 	public bool TryUpdate(ISymbol symbol, IdKind kind)
 	{
-		if (symbolKinds.TryGetValue(symbol, out IdKind existing)) {
+		if (SymbolKinds.TryGetValue(symbol, out IdKind existing)) {
 			if (existing == kind)
 				return false;
 
@@ -28,11 +28,11 @@ public sealed class SymbolTracker
 				return false;
 
 			// Error case.
-			symbolKinds[symbol] = IdKind.Multiple;
+			SymbolKinds[symbol] = IdKind.Multiple;
 			return true;
 		}
 
-		symbolKinds[symbol] = kind;
+		SymbolKinds[symbol] = kind;
 		return true;
 	}
 
@@ -41,5 +41,5 @@ public sealed class SymbolTracker
 	/// </summary>
 	/// <returns>The symbol kind, or <see cref="IdKind.Unknown"/>.</returns>
 	public IdKind GetKind(ISymbol symbol) =>
-		symbolKinds.TryGetValue(symbol, out IdKind kind) ? kind : IdKind.Unknown;
+		SymbolKinds.TryGetValue(symbol, out IdKind kind) ? kind : IdKind.Unknown;
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using tModCodeAssist.TypePropagation.Runner.MSBuild;
 
@@ -29,6 +30,8 @@ internal static class Program
 		SymbolTracker tracker = analyzer.Run();
 		sw.Stop();
 		await Console.Out.WriteLineAsync($"Finished propagating types! Elapsed: {sw.Elapsed:g}");
+
+		await File.WriteAllTextAsync("symbols.json", TrackedSymbolDumper.ToJson(tracker));
 
 		return 0;
 	}
