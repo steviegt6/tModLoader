@@ -33,8 +33,15 @@ public static class PropagationEngine
 	// contain members that should be mapped to ID types.  Should be kept small,
 	// only the bare minimum required to not produce erroneous maps or
 	// ambiguities.
+	// TODO: Change logic to only care about the first input project?  Should we
+	//       support mods in the future, though?
 	private static readonly HashSet<string> blacklisted_types = [
 		"System.Array",
+		"System.Linq.Enumerable",
+		"System.IO.BinaryWriter",
+		"System.Math",
+		"System.IO.Stream",
+		"System.IO.FileStream",
 	];
 
 	/// <summary>
@@ -193,6 +200,10 @@ public static class PropagationEngine
 			return false;
 
 		if (IsGenericOrArrayIndex(from) || IsGenericOrArrayIndex(to))
+			return false;
+
+		if ((from.ContainingType != null && blacklisted_types.Contains(from.ContainingType.ToDisplayString())) ||
+		    (to.ContainingType != null && blacklisted_types.Contains(to.ContainingType.ToDisplayString())))
 			return false;
 
 		IdKind fromKind = tracker.GetKind(from);
