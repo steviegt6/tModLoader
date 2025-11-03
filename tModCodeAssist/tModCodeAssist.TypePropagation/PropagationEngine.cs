@@ -69,35 +69,49 @@ public static class PropagationEngine
 			SemanticModel model = compilation.GetSemanticModel(tree);
 
 			foreach (SyntaxNode? node in tree.GetRoot().DescendantNodes()) {
-				var context = new Context(model, tracker, exception_registry, trace);
+				if (ShouldSkipNode(node))
+					continue;
+
+				var ctx = new Context(model, tracker, exception_registry, trace);
+
+				if (ctx.Exceptions.ShouldSkip(model.GetSymbolInfo(node).Symbol ?? model.GetDeclaredSymbol(node)))
+					continue;
 
 				switch (node) {
 					// int a = b;
 					case VariableDeclaratorSyntax variableDeclaratorSyntax:
-						HandleVariableDeclaration(ref context, variableDeclaratorSyntax);
+						HandleVariableDeclaration(ref ctx, variableDeclaratorSyntax);
 						break;
 
 					// a = b;
 					case AssignmentExpressionSyntax assignmentExpressionSyntax:
-						HandleAssignmentExpression(ref context, assignmentExpressionSyntax);
+						HandleAssignmentExpression(ref ctx, assignmentExpressionSyntax);
 						break;
 
 					// Method(arg);
 					case InvocationExpressionSyntax invocationExpressionSyntax:
-						HandleInvocationExpression(ref context, invocationExpressionSyntax);
+						HandleInvocationExpression(ref ctx, invocationExpressionSyntax);
 						break;
 
 					// return expr;
 					case ReturnStatementSyntax returnStatementSyntax:
-						HandleReturnStatement(ref context, returnStatementSyntax);
+						HandleReturnStatement(ref ctx, returnStatementSyntax);
 						break;
 				}
 
-				updates += context.Changes;
+				updates += ctx.Changes;
 			}
 		}
 
 		return updates > 0;
+	}
+
+	private static bool ShouldSkipNode(SyntaxNode? node)
+	{
+		if (node is null)
+			return true;
+
+
 	}
 
 	private static void HandleVariableDeclaration(

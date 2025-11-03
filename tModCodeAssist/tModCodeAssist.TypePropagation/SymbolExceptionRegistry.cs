@@ -3,6 +3,9 @@ using Microsoft.CodeAnalysis;
 
 namespace tModCodeAssist.TypePropagation;
 
+/// <summary>
+///		Determines what symbols to propagate types through.
+/// </summary>
 public sealed class SymbolExceptionRegistry
 {
 	public readonly record struct AssemblyIdentity(string AssemblyName);
@@ -17,7 +20,46 @@ public sealed class SymbolExceptionRegistry
 	private readonly HashSet<TypeIdentity> ignoredTypes = [];
 	private readonly HashSet<MethodIdentity> ignoredMethods = [];
 	private readonly HashSet<ParameterIdentity> ignoredParameters = [];
+	private readonly HashSet<TypeIdentity> ignoredTypeSyntaxes = [];
+	private readonly HashSet<MethodIdentity> ignoredMethodSyntaxes = [];
 
+	/// <summary>
+	///		Determines whether a given symbol should be skipped over when
+	///		iterating over syntaxes for type propagation.
+	/// </summary>
+	public bool ShouldSkip(ISymbol? symbol)
+	{
+		if (symbol?.ContainingAssembly is not { } containingAssembly)
+			return false;
+
+		if (!whitelistedAssemblies.Contains(symbol.ContainingAssembly.Name))
+			return true;
+
+		if (symbol.ContainingType is not { } containingType)
+			return false;
+
+		var typeId = new TypeIdentity(
+			new AssemblyIdentity(containingAssembly.Name),
+			containingType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
+		);
+
+		if (ignoredTypeSyntaxes.Contains(typeId))
+			return true;
+
+		if (symbol.ContainingSymbol is not IMethodSymbol method)
+			return false;
+
+		var methodId = new MethodIdentity(typeId, method.Name);
+		if (ignoredMethodSyntaxes.Contains(methodId))
+			return true;
+
+		return false;
+	}
+
+	/// <summary>
+	///		Determines whether a given symbol should be considered for type
+	///		propagation.
+	/// </summary>
 	public bool ShouldIgnore(ISymbol? symbol)
 	{
 		if (symbol?.ContainingAssembly is not { } containingAssembly)
@@ -49,6 +91,24 @@ public sealed class SymbolExceptionRegistry
 
 		var paramId = new ParameterIdentity(methodId, param.Name);
 		return ignoredParameters.Contains(paramId);
+	}
+
+	public SymbolExceptionRegistry IgnoreTypeSyntax(AssemblyIdentity assembly, string typeName) =>
+		IgnoreTypeSyntax(new TypeIdentity(assembly, typeName));
+
+	public SymbolExceptionRegistry IgnoreTypeSyntax(TypeIdentity type)
+	{
+		ignoredTypeSyntaxes.Add(type);
+		return this;
+	}
+
+	public SymbolExceptionRegistry IgnoreMethodSyntax(TypeIdentity type, string methodName) =>
+		IgnoreMethodSyntax(new MethodIdentity(type, methodName));
+
+	public SymbolExceptionRegistry IgnoreMethodSyntax(MethodIdentity method)
+	{
+		ignoredMethodSyntaxes.Add(method);
+		return this;
 	}
 
 	public SymbolExceptionRegistry WhitelistAssembly(AssemblyIdentity assembly)
