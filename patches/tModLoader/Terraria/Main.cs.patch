@@ -6470,6 +6470,34 @@
  		Asset<Texture2D> asset = TextureAssets.MapBGs[0];
  		int num = -1;
  		Microsoft.Xna.Framework.Color color = Microsoft.Xna.Framework.Color.White;
+@@ -46974,10 +_,13 @@
+ 		spriteBatch.End();
+ 		tileBatch.Begin();
+ 		spriteBatch.Begin();
++		bool lidquidEdgeRendererEnabled = LiquidEdgeRenderer.Enabled;
++		LiquidEdgeRenderer.Enabled = false;
+ 		if (biome == null)
+ 			DrawLiquid(bg: true, waterStyle);
+ 		else
+ 			DrawLiquid(bg: true, bloodMoon ? 9 : biome.WaterStyle);
++		LiquidEdgeRenderer.Enabled = lidquidEdgeRendererEnabled;
+ 
+ 		tileBatch.End();
+ 		spriteBatch.End();
+@@ -47097,10 +_,13 @@
+ 
+ 		tileBatch.Begin();
+ 		spriteBatch.Begin();
++		lidquidEdgeRendererEnabled = LiquidEdgeRenderer.Enabled;
++		LiquidEdgeRenderer.Enabled = false;
+ 		if (biome == null)
+ 			DrawLiquid(bg: false, waterStyle);
+ 		else
+ 			DrawLiquid(bg: false, biome.WaterStyle);
++		LiquidEdgeRenderer.Enabled = lidquidEdgeRendererEnabled;
+ 
+ 		if (captureMech)
+ 			DrawWires();
 @@ -47244,6 +_,12 @@
  			case 4:
  				return 13;
