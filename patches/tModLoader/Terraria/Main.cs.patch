@@ -6470,34 +6470,23 @@
  		Asset<Texture2D> asset = TextureAssets.MapBGs[0];
  		int num = -1;
  		Microsoft.Xna.Framework.Color color = Microsoft.Xna.Framework.Color.White;
-@@ -46974,10 +_,13 @@
- 		spriteBatch.End();
- 		tileBatch.Begin();
- 		spriteBatch.Begin();
+@@ -46783,6 +_,8 @@
+ 
+ 	public void DrawCapture(Microsoft.Xna.Framework.Rectangle area, CaptureSettings settings)
+ 	{
 +		bool lidquidEdgeRendererEnabled = LiquidEdgeRenderer.Enabled;
 +		LiquidEdgeRenderer.Enabled = false;
- 		if (biome == null)
- 			DrawLiquid(bg: true, waterStyle);
- 		else
- 			DrawLiquid(bg: true, bloodMoon ? 9 : biome.WaterStyle);
+ 		float[] array = bgAlphaFrontLayer;
+ 		bgAlphaFrontLayer = new float[array.Length];
+ 		float[] array2 = bgAlphaFarBackLayer;
+@@ -47132,6 +_,7 @@
+ 		SceneMetrics.HolyTileCount = holyTileCount;
+ 		Lighting.Initialize();
+ 		GameViewMatrix = gameViewMatrix;
 +		LiquidEdgeRenderer.Enabled = lidquidEdgeRendererEnabled;
+ 	}
  
- 		tileBatch.End();
- 		spriteBatch.End();
-@@ -47097,10 +_,13 @@
- 
- 		tileBatch.Begin();
- 		spriteBatch.Begin();
-+		lidquidEdgeRendererEnabled = LiquidEdgeRenderer.Enabled;
-+		LiquidEdgeRenderer.Enabled = false;
- 		if (biome == null)
- 			DrawLiquid(bg: false, waterStyle);
- 		else
- 			DrawLiquid(bg: false, biome.WaterStyle);
-+		LiquidEdgeRenderer.Enabled = lidquidEdgeRendererEnabled;
- 
- 		if (captureMech)
- 			DrawWires();
+ 	protected void RenderTiles()
 @@ -47244,6 +_,12 @@
  			case 4:
  				return 13;
