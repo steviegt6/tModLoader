@@ -350,3 +350,14 @@
  
  				Rectangle sourceRectangle = ptr2->SourceRectangle;
  				if (ptr2->IsSurfaceLiquid)
+@@ -583,8 +_,8 @@
+ 				float val = ptr2->Opacity * (isBackgroundDraw ? 1f : 0.75f);
+ 				int num2 = 14;
+ 				val = Math.Min(1f, val);
+-				int num3 = ptr2->X + drawArea.X - 2;
+-				int num4 = ptr2->Y + drawArea.Y - 2;
++				int num3 = ptr2->X;
++				int num4 = ptr2->Y;
+ 				Lighting.GetCornerColors(num3, num4, out var vertices);
+ 				SetShimmerVertexColors(ref vertices, val, num3, num4);
+ 				Main.DrawTileInWater(drawOffset, num3, num4);
