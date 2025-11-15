@@ -67,6 +67,7 @@ internal class BuildProperties
 	internal ModSide side;
 	internal bool playableOnPreview = true;
 	internal bool translationMod = false;
+	internal string modSource = "";
 	internal bool hasCoreModTransformers;
 
 	public IEnumerable<ModReference> Refs(bool includeWeak) =>
@@ -185,6 +186,9 @@ internal class BuildProperties
 		if (refs.Count != refs.Distinct().Count())
 			throw new Exception("Duplicate mod/weak reference");
 
+		if (properties.dllReferences.Intersect(properties.modReferences.Select(x => x.mod)).Any())
+			throw new Exception("dllReferences contains duplicate of modReferences");
+
 		//add (mod|weak)References that are not in sortBefore to sortAfter
 		properties.sortAfter = properties.RefNames(true).Where(dep => !properties.sortBefore.Contains(dep))
 			.Concat(properties.sortAfter).Distinct().ToArray();
@@ -264,8 +268,14 @@ internal class BuildProperties
 					writer.Write("side");
 					writer.Write((byte)side);
 				}
+<<<<<<< HEAD
 				if (hasCoreModTransformers) {
 					writer.Write(nameof(hasCoreModTransformers));
+=======
+				if (modSource.Length > 0) {
+					writer.Write("modSource");
+					writer.Write(modSource);
+>>>>>>> feat/coremod-draft
 				}
 
 				writer.Write("buildVersion");
@@ -348,8 +358,13 @@ internal class BuildProperties
 				if (tag == "buildVersion") {
 					properties.buildVersion = new Version(reader.ReadString());
 				}
+<<<<<<< HEAD
 				if (tag == nameof(hasCoreModTransformers)) {
 					properties.hasCoreModTransformers = true;
+=======
+				if (tag == "modSource") {
+					properties.modSource = reader.ReadString();
+>>>>>>> feat/coremod-draft
 				}
 			}
 		}
