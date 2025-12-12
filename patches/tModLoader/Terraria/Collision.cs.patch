@@ -99,7 +99,7 @@
  					vector.X = i * 16;
  					vector.Y = j * 16;
  					int num2 = 16;
-@@ -1222,13 +_,28 @@
+@@ -1222,13 +_,33 @@
  					num3 /= 32f;
  					vector.Y += num3 * 2f;
  					num2 -= (int)(num3 * 2f);
@@ -112,16 +112,22 @@
  				}
  			}
  		}
+-
+-		return false;
 +		return flag;
 +	}
- 
--		return false;
++
 +	public static bool GetModdedWets(Vector2 Position, int Width, int Height, out bool[] liquidsIn)
 +	{
 +		liquidsIn = new bool[LiquidLoader.LiquidCount];
++		return GetModdedWets(Position, Width, Height, liquidsIn.AsSpan());
++	}
++
++	internal static bool GetModdedWets(Vector2 Position, int Width, int Height, Span<bool> liquidsIn)
++	{
 +		WetCollision(Position, Width, Height, out bool[] liquidsInNorm);
 +		LavaCollision(Position, Width, Height, out bool[] liquidsInAlt);
-+		Array.Copy(liquidsInNorm, liquidsIn, LiquidLoader.LiquidCount);
++		liquidsInNorm.AsSpan().CopyTo(liquidsIn);
 +		for (int i = LiquidID.Count; i < LiquidLoader.LiquidCount; i++) {
 +			if (LiquidLoader.GetLiquid(i).UsesLavaCollisionForWet) {
 +				liquidsIn[i] = liquidsInAlt[i];

@@ -14,58 +14,81 @@
  
  namespace Terraria.GameContent.Shaders;
  
-@@ -182,6 +_,10 @@
+@@ -182,6 +_,13 @@
  					if (!nPC.wet)
  						num2 = -20f;
  
-+					for (int l = LiquidLoader.LiquidCount - 1; l >= 0; l--)
-+						if (nPC.wets[l])
-+							LiquidLoader.NPCRippleModifier(l, nPC, ref num, ref num2);
++					for (int j = LiquidLoader.LiquidCount - 1; j >= 0; j--) {
++						if (!nPC.wets[j])
++							continue;
++
++						LiquidLoader.NPCRippleModifier(j, nPC, ref num, ref num2);
++					}
 +
  					QueueRipple(nPC.Center + velocity * num2, new Color(0.5f, (nPC.wet ? num : (0f - num)) * 0.5f + 0.5f, 0f, 1f) * 0.5f, new Vector2(nPC.width, (float)nPC.height * ((float)(int)nPC.wetCount / 9f)) * MathHelper.Clamp(num * 10f, 0f, 1f), RippleShape.Circle);
  				}
  			}
-@@ -210,6 +_,10 @@
+@@ -210,6 +_,13 @@
  					if (!player.wet)
  						num4 = -20f;
  
-+					for (int l = LiquidLoader.LiquidCount - 1; l >= 0; l--)
-+						if (player.wets[l])
-+							LiquidLoader.PlayerRippleModifier(l, player, ref num3, ref num4);
++					for (int k = LiquidLoader.LiquidCount - 1; k >= 0; k--) {
++						if (!player.wets[k])
++							continue;
++
++						LiquidLoader.PlayerRippleModifier(k, player, ref num3, ref num4);
++					}
 +
  					num3 *= 3f;
  					QueueRipple(player.Center + velocity2 * num4, player.wet ? num3 : (0f - num3), new Vector2(player.width, (float)player.height * ((float)(int)player.wetCount / 9f)) * MathHelper.Clamp(num3 * 10f, 0f, 1f), RippleShape.Circle);
  				}
-@@ -227,6 +_,9 @@
+@@ -217,6 +_,8 @@
+ 		}
+ 
+ 		if (_useProjectileWaves) {
++			Span<bool> liquidsIn = stackalloc bool[LiquidLoader.LiquidCount];
++
+ 			for (int k = 0; k < 1000; k++) {
+ 				Projectile projectile = Main.projectile[k];
+ 				if (projectile.wet && !projectile.lavaWet)
+@@ -224,9 +_,16 @@
+ 				else
+ 					_ = 0;
+ 
++				projectile.wets.AsSpan().CopyTo(liquidsIn);
++				/*
  				bool flag = projectile.lavaWet;
  				bool flag2 = projectile.honeyWet;
  				bool flag3 = projectile.wet;
-+				bool shimmer = projectile.shimmerWet;
-+				bool[] liquidsIn = new bool[LiquidLoader.LiquidCount];
-+				Array.Copy(projectile.wets, liquidsIn, LiquidLoader.LiquidCount);
++				*/
++				ref bool flag = ref liquidsIn[LiquidID.Lava];
++				ref bool flag2 = ref liquidsIn[LiquidID.Honey];
++				ref bool flag3 = ref liquidsIn[LiquidID.Water];
++				ref bool shimmer = ref liquidsIn[LiquidID.Shimmer];
  				if (projectile.ignoreWater)
  					flag3 = true;
  
-@@ -236,8 +_,10 @@
- 				if (projectile.ignoreWater) {
+@@ -237,7 +_,9 @@
  					bool num5 = Collision.LavaCollision(projectile.position, projectile.width, projectile.height);
  					flag = Collision.WetCollision(projectile.position, projectile.width, projectile.height);
-+					Collision.GetModdedWets(projectile.position, projectile.width, projectile.height, out liquidsIn);
  					flag2 = Collision.honey;
 -					if (!(num5 || flag || flag2))
 +					shimmer = Collision.shimmer;
++					Collision.GetModdedWets(projectile.position, projectile.width, projectile.height, liquidsIn);
 +					if (!(num5 || flag || flag2 || shimmer || liquidsIn.Contains(true)))
  						continue;
  				}
  
-@@ -246,8 +_,36 @@
+@@ -246,8 +_,40 @@
  				num6 = 2f * (float)Math.Sqrt(0.05f * num6);
  				Vector2 velocity3 = projectile.velocity;
  				velocity3.Normalize();
++				/*
+ 				if (!_useViscosityFilter && (flag2 || flag))
+ 					num6 *= 0.3f;
++				*/
 +				if (!_useViscosityFilter) {
--				if (!_useViscosityFilter && (flag2 || flag))
-+					if ((flag2 || flag))
--					num6 *= 0.3f;
++					if (flag2 || flag)
 +						num6 *= 0.3f;
 +
 +					for (int l = LiquidLoader.LiquidCount - 1; l >= 0; l--) {
