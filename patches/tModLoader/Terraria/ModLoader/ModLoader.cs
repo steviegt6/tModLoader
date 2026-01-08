@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ReLogic.Content;
 using ReLogic.OS;
+using Terraria.GameContent.Liquid;
 using Terraria.Initializers;
 using Terraria.Localization;
 using Terraria.ModLoader.Assets;
@@ -39,9 +40,9 @@ public static class ModLoader
 	public static bool WarnedFamilyShare;
 	public static bool WarnedFamilyShareDontShowAgain;
 	public static Version LastPreviewFreezeNotificationSeen;
-	public static int LatestNewsTimestamp; 
+	public static int LatestNewsTimestamp;
 
-	// Update this name if doing an upgrade 
+	// Update this name if doing an upgrade
 	public static bool BetaUpgradeWelcomed144;
 
 	public static string versionedName => (BuildInfo.Purpose != BuildInfo.BuildPurpose.Stable) ? BuildInfo.versionedNameDevFriendly : BuildInfo.versionedName;
@@ -173,7 +174,7 @@ public static class ModLoader
 				if (mod != null && mod.tModLoaderVersion.MajorMinorBuild() != BuildInfo.tMLVersion.MajorMinorBuild())
 					msg += "\n" + Language.GetTextValue("tModLoader.LoadErrorVersionMessage", mod.tModLoaderVersion, versionedName);
 				else if (mod != null)
-					// if the mod exists, and the MajorMinorBuild() is identical, then assume it is an error in the Steam install/deployment - Solxan 
+					// if the mod exists, and the MajorMinorBuild() is identical, then assume it is an error in the Steam install/deployment - Solxan
 					SteamedWraps.QueueForceValidateSteamInstall();
 
 				if (e is Exceptions.JITException)
@@ -205,7 +206,7 @@ public static class ModLoader
 					DisableModAndDependents(dependent);
 				}
 			}
-			
+
 			Logging.tML.Error(msg, e);
 
 			isLoading = false; // disable loading flag, because server will just instantly retry reload
@@ -382,6 +383,8 @@ public static class ModLoader
 		Main.Configuration.Put(nameof(LatestNewsTimestamp), LatestNewsTimestamp);
 		Main.Configuration.Put(nameof(WarnedFamilyShareDontShowAgain), WarnedFamilyShareDontShowAgain);
 		Main.Configuration.Put(nameof(ModsMenuSortMode), Enum.GetName(typeof(ModsMenuSortMode), Interface.modsMenu.sortMode));
+
+		Main.Configuration.Put("LiquidSlopeFix", LiquidEdgeRenderer.Enabled);
 	}
 
 	internal static void LoadConfiguration()
@@ -412,6 +415,8 @@ public static class ModLoader
 		Main.Configuration.Get(nameof(WarnedFamilyShareDontShowAgain), ref WarnedFamilyShareDontShowAgain);
 		if (Enum.TryParse<ModsMenuSortMode>(Main.Configuration.Get(nameof(ModsMenuSortMode), ModsMenuSortMode.RecentlyUpdated.ToString()), out var modsMenuSortMode))
 			Interface.modsMenu.sortMode = modsMenuSortMode;
+
+		Main.Configuration.Get("LiquidSlopeFix", ref LiquidEdgeRenderer.Enabled);
 	}
 
 	internal static void MigrateSettings()

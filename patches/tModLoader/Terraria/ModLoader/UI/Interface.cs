@@ -191,23 +191,40 @@ internal static class Interface
 
 				// Find dependencies that need to be downloaded.
 				var missingDeps = ModOrganizer.IdentifyMissingWorkshopDependencies().ToList();
-				
+
 				string message = $"{ModOrganizer.DetectModChangesForInfoMessage(out IEnumerable<string> removedMods)}";
 				if (missingDeps.Any()) {
 					message += $"{Language.GetTextValue("tModLoader.DependenciesNeededForOtherMods")}\n  {string.Join("\n  ", missingDeps)}";
 				}
 				message = message.Trim('\n');
 
-				bool promptDepDownloads = missingDeps.Any() || removedMods.Any();
+				bool anyMissingDependency = missingDeps.Any();
+				bool anyRemovedMod = removedMods.Any();
+				bool promptDepDownloads = anyMissingDependency || anyRemovedMod;
 
 				string cancelButton = promptDepDownloads ? Language.GetTextValue("tModLoader.ContinueAnyway") : null;
-				string continueButton = promptDepDownloads ? Language.GetTextValue("tModLoader.InstallDependencies") : "";
+				string continueButton = "";
+				if (anyMissingDependency && anyRemovedMod)
+					continueButton = Language.GetTextValue("tModLoader.InstallDependenciesAndRedownloadMods");
+				else if (anyMissingDependency)
+					continueButton = Language.GetTextValue("tModLoader.InstallDependencies");
+				else if (anyRemovedMod)
+					continueButton = Language.GetTextValue("tModLoader.RedownloadMods");
 
 				Action downloadAction = async () => {
 					HashSet<ModDownloadItem> downloads = new();
 					foreach (var slug in missingDeps) {
-						if (!WorkshopHelper.TryGetModDownloadItem(slug, out var item) || item == null) {
-							Logging.tML.Error($"Could not find required mod dependency on Workshop: {slug}");
+						var state = WorkshopHelper.QueryHelper.AQueryInstance.TryGetModDownloadItem(slug, out var item);
+						if (state == WorkshopHelper.WorkshopSearchReturnState.SearchFailed)
+							break;
+
+						if (state != WorkshopHelper.WorkshopSearchReturnState.Success) {
+							Logging.tML.Error($"Could not find required mod dependency on Workshop: {slug}; Error State {state}");
+							continue;
+						}
+
+						if (item.Banned) {
+							Logging.tML.Error($"The missing dependency {item.DisplayName} with ID:{item.PublishId} is Banned on Workshop.");
 							continue;
 						}
 
@@ -224,8 +241,17 @@ internal static class Interface
 					// Revisit this code at a later date. Its not apparent how well the interaction of both dependencies and removed mods will play out in terms of UX
 					HashSet<ModPubId_t> removedDownloads = new();
 					foreach (var slug in removedMods) {
-						if (!WorkshopHelper.TryGetModDownloadItem(slug, out var item) || item == null) {
-							Logging.tML.Error($"Could not find removed mod on Workshop: {slug}");
+						var state = WorkshopHelper.QueryHelper.AQueryInstance.TryGetModDownloadItem(slug, out var item);
+						if (state == WorkshopHelper.WorkshopSearchReturnState.SearchFailed)
+							break;
+
+						if (state != WorkshopHelper.WorkshopSearchReturnState.Success) {
+							Logging.tML.Error($"Could not find removed mod on Workshop: {slug}; Error State {state}");
+							continue;
+						}
+
+						if (item.Banned) {
+							Logging.tML.Error($"The removed mod {item.DisplayName} with ID:{item.PublishId} is Banned on Workshop.");
 							continue;
 						}
 
@@ -497,7 +523,7 @@ internal static class Interface
 					WriteColoredLine(ConsoleColor.Yellow, Language.GetTextValue("tModLoader.DedErrorNoConfig"));
 				}
 				else {
-					// We are acting on the actual configs rather than a clone because a reload will be forced anyway. If changing configs during server play is implemented later this will need to adjust to the clone approach.  
+					// We are acting on the actual configs rather than a clone because a reload will be forced anyway. If changing configs during server play is implemented later this will need to adjust to the clone approach.
 					ConfigureMod(mod, configs);
 				}
 			}

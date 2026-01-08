@@ -174,6 +174,9 @@ Mods: {
 				MapEntry: Basic Tile Entity Tile
 				StatusText: Filled: {0}%
 			}
+
+			ExampleWorkbench.MapEntry: Example Workbench
+			ExampleExposedGem.MapEntry: Example Gem
 		}
 
 		Items: {
@@ -581,7 +584,11 @@ Mods: {
 
 			ExampleSlopedTile: {
 				DisplayName: Example Sloped Tile
-				Tooltip: Example tile that can be sloped but is not solid
+				Tooltip:
+					'''
+					Example tile that can be sloped but is not solid
+					Activates when a player passes through it in the indicated direction
+					'''
 			}
 
 			ExampleTorch: {
@@ -869,6 +876,11 @@ Mods: {
 			ExampleAnimatedGlowmaskTileItem: {
 				DisplayName: Example Animated Glowmask Tile Item
 				Tooltip: ""
+			}
+
+			ExampleTransparentShapedTileItem: {
+				DisplayName: Fiery Mesh
+				Tooltip: "'Touch this to BURN!!'"
 			}
 
 			ExampleAnimatedTileItem: {
@@ -1230,6 +1242,16 @@ Mods: {
 
 			ExampleCutTile: {
 				DisplayName: Fragile Boulder Trap
+				Tooltip: ""
+			}
+
+			ExamplePressurePlate: {
+				DisplayName: Example Weighted Pressure Plate
+				Tooltip: "{$ItemTooltip.WeightedPressurePlateCyan}"
+			}
+
+			ExampleGem: {
+				DisplayName: Example Gem
 				Tooltip: ""
 			}
 		}

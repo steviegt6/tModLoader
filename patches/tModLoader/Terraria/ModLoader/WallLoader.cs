@@ -9,7 +9,6 @@ using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
-using static System.Net.WebRequestMethods;
 
 namespace Terraria.ModLoader;
 
@@ -49,6 +48,7 @@ public static class WallLoader
 	private static Func<int, int, int, SpriteBatch, bool>[] HookPreDraw;
 	private static Action<int, int, int, SpriteBatch>[] HookPostDraw;
 	private static Action<int, int, int, Item>[] HookPlaceInWorld;
+	private static Action<int, int, int, int, int>[] HookOnWallConverted;
 
 	internal static int ReserveWallID()
 	{
@@ -120,6 +120,7 @@ public static class WallLoader
 		ModLoader.BuildGlobalHook(ref HookPreDraw, globalWalls, g => g.PreDraw);
 		ModLoader.BuildGlobalHook(ref HookPostDraw, globalWalls, g => g.PostDraw);
 		ModLoader.BuildGlobalHook(ref HookPlaceInWorld, globalWalls, g => g.PlaceInWorld);
+		ModLoader.BuildGlobalHook(ref HookOnWallConverted, globalWalls, g => g.OnWallConverted);
 
 		if (!unloading) {
 			loaded = true;
@@ -292,6 +293,22 @@ public static class WallLoader
 		var list = conversions[conversionType] ??= new();
 		list.Add(conversionDelegate);
 	}
+
+	/// <summary>
+	/// Registers a wall type as having custom biome conversion code for this specific <see cref="BiomeConversionID"/>. For modded walls, you can directly use <see cref="Convert"/> <br/>
+	/// If you need to register conversions that rely on <see cref="WallID.Sets.Conversion"/> being fully populated, consider doing it in <see cref="ModBiomeConversion.PostSetupContent"/>
+	/// </summary>
+	/// <param name="wallType">The wall type that has is affected by this custom conversion.</param>
+	/// <param name="conversionType">The conversion type for which the wall should use custom conversion code.</param>
+	/// <param name="toType">What <paramref name="wallType"/> is converted into when it's hit with the <paramref name="conversionType"/>.</param>
+	public static void RegisterConversion(int wallType, int conversionType, int toType)
+	{
+		RegisterConversion(wallType, conversionType, (int i, int j, int type, int conversionType) => {
+			WorldGen.ConvertWall(i, j, toType);
+			return false;
+		});
+	}
+
 	/// <summary>
 	/// Registers a conversion that replaces <paramref name="wallType"/> with <paramref name="toType"/> when touched by <paramref name="conversionType"/> <br/>
 	/// Also registers <paramref name="wallType"/> as a fallback for <paramref name="toType"/> so that other conversions can convert <paramref name="toType"/> as if it was <paramref name="wallType"/>. <br/>
@@ -317,7 +334,6 @@ public static class WallLoader
 			}
 			RegisterConversion(toType, BiomeConversionID.Purity, Purify);
 			RegisterConversion(toType, BiomeConversionID.PurificationPowder, Purify);
-			RegisterConversion(toType, BiomeConversionID.Chlorophyte, Purify);
 		}
 	}
 
@@ -463,6 +479,7 @@ public static class WallLoader
 
 	public static bool Convert(int i, int j, int conversionType)
 	{
+		using var recursionCounter = new WorldGen.ConversionRecursion();
 		var tile = Main.tile[i, j];
 		int type = tile.wall;
 		var list = wallConversionDelegates[type]?[conversionType];
@@ -554,8 +571,9 @@ public static class WallLoader
 
 	public static void PlaceInWorld(int i, int j, Item item)
 	{
-		int type = item.createWall;
-		if (type < 0)
+		Tile tile = Main.tile[i, j];
+		int type = tile.WallType;
+		if (type == 0)
 			return;
 
 		foreach (var hook in HookPlaceInWorld) {
@@ -563,6 +581,16 @@ public static class WallLoader
 		}
 
 		GetWall(type)?.PlaceInWorld(i, j, item);
+	}
+
+	public static void OnWallConverted(int i, int j, int fromType, int toType, int conversionType)
+	{
+		foreach (var hook in HookOnWallConverted) {
+			hook(i, j, fromType, toType, conversionType);
+		}
+
+		GetWall(fromType)?.OnWallConverted(i, j, fromType, toType, conversionType);
+		GetWall(toType)?.OnWallConverted(i, j, fromType, toType, conversionType);
 	}
 
 	internal static void FinishSetup()

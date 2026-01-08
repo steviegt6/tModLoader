@@ -1,8 +1,8 @@
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.Enums;
@@ -14,7 +14,6 @@ using Terraria.Localization;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.IO;
 using Terraria.ObjectData;
-using static Terraria.GameContent.ItemDropRules.Conditions;
 
 namespace Terraria.ModLoader;
 
@@ -99,6 +98,8 @@ public static class TileLoader
 	private static Func<int, int, int, Item, bool>[] HookAutoSelect;
 	private static Func<int, int, int, bool>[] HookPreHitWire;
 	private static Action<int, int, int>[] HookHitWire;
+	private static Func<int, int, int, bool>[] HookHitSwitch;
+	private static Func<int, int, int, Entity, Vector2, int, int, Vector2, int, bool>[] HookSwitchTiles;
 	private static Func<int, int, int, bool>[] HookSlope;
 	private static Action<int, Player>[] HookFloorVisuals;
 	private delegate void DelegateChangeWaterfallStyle(int type, ref int style);
@@ -107,6 +108,7 @@ public static class TileLoader
 	private static Action[] HookPostSetupTileMerge;
 	private static Action<int, int, TreeTypes>[] HookPreShakeTree;
 	private static Func<int, int, TreeTypes, bool>[] HookShakeTree;
+	private static Action<int, int, int, int, int>[] HookOnTileConverted;
 
 	internal static int ReserveTileID()
 	{
@@ -256,6 +258,8 @@ public static class TileLoader
 		ModLoader.BuildGlobalHook(ref HookAutoSelect, globalTiles, g => g.AutoSelect);
 		ModLoader.BuildGlobalHook(ref HookPreHitWire, globalTiles, g => g.PreHitWire);
 		ModLoader.BuildGlobalHook(ref HookHitWire, globalTiles, g => g.HitWire);
+		ModLoader.BuildGlobalHook(ref HookHitSwitch, globalTiles, g => g.HitSwitch);
+		ModLoader.BuildGlobalHook(ref HookSwitchTiles, globalTiles, g => g.SwitchTiles);
 		ModLoader.BuildGlobalHook(ref HookSlope, globalTiles, g => g.Slope);
 		ModLoader.BuildGlobalHook(ref HookFloorVisuals, globalTiles, g => g.FloorVisuals);
 		ModLoader.BuildGlobalHook<GlobalTile, DelegateChangeWaterfallStyle>(ref HookChangeWaterfallStyle, globalTiles, g => g.ChangeWaterfallStyle);
@@ -263,6 +267,7 @@ public static class TileLoader
 		ModLoader.BuildGlobalHook(ref HookPostSetupTileMerge, globalTiles, g => g.PostSetupTileMerge);
 		ModLoader.BuildGlobalHook(ref HookPreShakeTree, globalTiles, g => g.PreShakeTree);
 		ModLoader.BuildGlobalHook(ref HookShakeTree, globalTiles, g => g.ShakeTree);
+		ModLoader.BuildGlobalHook(ref HookOnTileConverted, globalTiles, g => g.OnTileConverted);
 
 		if (!unloading) {
 			loaded = true;
@@ -363,7 +368,7 @@ public static class TileLoader
 				break;
 			}
 		}
-		// TODO: Placed modded tiles can't automatically reorient themselves to an alternate placement, like Torch and Sign do. 
+		// TODO: Placed modded tiles can't automatically reorient themselves to an alternate placement, like Torch and Sign do.
 		if (partiallyDestroyed || !TileObject.CanPlace(originX, originY, type, style, 0, out TileObject objectData, onlyCheck: true, checkStay: true)) {
 			WorldGen.destroyObject = true;
 			// First the Items to drop are tallied and spawned, then Kill each tile, then KillMultiTile can clean up TileEntities or Chests
@@ -487,7 +492,7 @@ public static class TileLoader
 		ModTile modTile = GetTile(type);
 		if (modTile != null) {
 			// Because vanilla sets its own offset based on frameY, ignoring tile type, which might not be set to an expected default, reassign it
-			info.VisualOffset = new Vector2(-9f, 1f); // Taken from default case of vanilla beds 
+			info.VisualOffset = new Vector2(-9f, 1f); // Taken from default case of vanilla beds
 			modTile.ModifySleepingTargetInfo(i, j, ref info);
 		}
 	}
@@ -721,6 +726,22 @@ public static class TileLoader
 		var list = conversions[conversionType] ??= new();
 		list.Add(conversionDelegate);
 	}
+
+	/// <summary>
+	/// Registers a tile type as having custom biome conversion code for this specific <see cref="BiomeConversionID"/>. For modded tiles, you can directly use <see cref="Convert"/> <br/>
+	/// If you need to register conversions that rely on <see cref="TileID.Sets.Conversion"/> being fully populated, consider doing it in <see cref="ModBiomeConversion.PostSetupContent"/>
+	/// </summary>
+	/// <param name="tileType">The tile type that has is affected by this custom conversion.</param>
+	/// <param name="conversionType">The conversion type for which the tile should use custom conversion code.</param>
+	/// <param name="toType">What <paramref name="tileType"/> is converted into when it's hit with the <paramref name="conversionType"/>.</param>
+	public static void RegisterConversion(int tileType, int conversionType, int toType)
+	{
+		RegisterConversion(tileType, conversionType, (int i, int j, int type, int conversionType) => {
+			WorldGen.ConvertTile(i, j, toType);
+			return false;
+		});
+	}
+
 	/// <summary>
 	/// Registers a conversion that replaces <paramref name="tileType"/> with <paramref name="toType"/> when touched by <paramref name="conversionType"/> <br/>
 	/// Also registers <paramref name="tileType"/> as a fallback for <paramref name="toType"/> so that other conversions can convert <paramref name="toType"/> as if it was <paramref name="tileType"/>. <br/>
@@ -736,6 +757,7 @@ public static class TileLoader
 			WorldGen.ConvertTile(i, j, toType);
 			return false;
 		});
+
 		RegisterConversionFallback(toType, tileType, conversionType);
 
 		if (purification) {
@@ -746,7 +768,8 @@ public static class TileLoader
 			}
 			RegisterConversion(toType, BiomeConversionID.Purity, Purify);
 			RegisterConversion(toType, BiomeConversionID.PurificationPowder, Purify);
-			RegisterConversion(toType, BiomeConversionID.Chlorophyte, Purify);
+			if (conversionType != BiomeConversionID.Hallow)
+				RegisterConversion(toType, BiomeConversionID.Chlorophyte, Purify);
 		}
 	}
 
@@ -838,6 +861,7 @@ public static class TileLoader
 
 	public static bool Convert(int i, int j, int conversionType)
 	{
+		using var recursionCounter = new WorldGen.ConversionRecursion();
 		var tile = Main.tile[i, j];
 		int type = tile.TileType;
 		var list = tileConversionDelegates[type]?[conversionType];
@@ -1233,6 +1257,26 @@ public static class TileLoader
 		}
 	}
 
+	public static bool HitSwitch(int i, int j, int type)
+	{
+		foreach (var hook in HookHitSwitch) {
+			if (!hook(i, j, type))
+				return false;
+		}
+		GetTile(type)?.HitSwitch(i, j);
+		return true;
+	}
+
+	public static bool SwitchTiles(int i, int j, int type, Entity entity, Vector2 position, int width, int height, Vector2 oldPosition, int objType)
+	{
+		bool returnValue = false;
+		foreach (var hook in HookSwitchTiles) {
+			returnValue |= hook(i, j, type, entity, position, width, height, oldPosition, objType);
+		}
+		returnValue |= GetTile(type)?.SwitchTiles(i, j, entity, position, width, height, oldPosition, objType) ?? false;
+		return returnValue;
+	}
+
 	public static void FloorVisuals(int type, Player player)
 	{
 		GetTile(type)?.FloorVisuals(player);
@@ -1365,8 +1409,9 @@ public static class TileLoader
 
 	public static void PlaceInWorld(int i, int j, Item item)
 	{
-		int type = item.createTile;
-		if (type < 0)
+		Tile tile = Main.tile[i, j];
+		int type = tile.TileType;
+		if (!tile.HasTile)
 			return;
 
 		foreach (var hook in HookPlaceInWorld) {
@@ -1466,5 +1511,15 @@ public static class TileLoader
 				return true;
 		}
 		return false;
+	}
+
+	public static void OnTileConverted(int i, int j, int fromType, int toType, int conversionType)
+	{
+		foreach (var hook in HookOnTileConverted) {
+			hook(i, j, fromType, toType, conversionType);
+		}
+
+		GetTile(fromType)?.OnTileConverted(i, j, fromType, toType, conversionType);
+		GetTile(toType)?.OnTileConverted(i, j, fromType, toType, conversionType);
 	}
 }

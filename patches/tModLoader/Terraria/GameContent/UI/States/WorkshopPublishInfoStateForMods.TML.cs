@@ -178,7 +178,7 @@ public class WorkshopPublishInfoStateForMods : AWorkshopPublishInfoState<TmodFil
 			queryType = QueryType.SearchDirect
 		};
 
-		if (!WorkshopHelper.TryGetModDownloadItem(_dataObject.Name, out var mod) || mod == null) {
+		if (WorkshopHelper.QueryHelper.AQueryInstance.TryGetModDownloadItem(_dataObject.Name, out var mod) != WorkshopHelper.WorkshopSearchReturnState.Success) {
 			return;
 		}
 
@@ -273,7 +273,7 @@ public class WorkshopPublishInfoStateForMods : AWorkshopPublishInfoState<TmodFil
 	internal static unsafe void UpscaleAndSaveImageAsPng(string srcImagePath, string dstImagePath, int dstWidth, int dstHeight)
 	{
 		using var srcStream = File.OpenRead(srcImagePath);
-		Texture2D.TextureDataFromStreamEXT(srcStream, out int srcWidth, out int srcHeight, out byte[] srcBytes); 
+		Texture2D.TextureDataFromStreamEXT(srcStream, out int srcWidth, out int srcHeight, out byte[] srcBytes);
 
 		using var dstStream = File.OpenWrite(dstImagePath);
 		PlatformUtilities.SavePng(dstStream, srcWidth, srcHeight, dstWidth, dstHeight, srcBytes);

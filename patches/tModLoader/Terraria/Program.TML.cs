@@ -88,7 +88,7 @@ public static partial class Program
 		// Only create and port config files from stable if needed.
 		if (BuildInfo.IsStable)
 			return;
-		
+
 		var releasePath = Path.Combine(savePath, ReleaseFolder);
 		var newPath = Path.Combine(savePath, SaveFolderName);
 		if (Directory.Exists(releasePath) && !Directory.Exists(newPath)) {
@@ -307,7 +307,7 @@ public static partial class Program
 			}
 			catch (Exception e) {
 				bool controlledFolderAccessMightBeRelevant = (e is COMException || e is FileNotFoundException) && ControlledFolderAccessSupport.ControlledFolderAccessDetected;
-				
+
 				ErrorReporting.FatalExit("An error occurred migrating files and folders to the new structure" + (controlledFolderAccessMightBeRelevant ? $"\n\nControlled Folder Access feature detected, this might be the cause of this error.\n\nMake sure to add \"{Environment.ProcessPath}\" to the \"Allow an app through Controlled folder access\" menu found in the \"Ransomware protection\" menu." : ""), e);
 			}
 		}
@@ -344,9 +344,6 @@ public static partial class Program
 			Logging.LogStartup(isServer); // Should run as early as is possible. Want as complete a log file as possible
 
 			SetSavePath();
-		
-			if (ModLoader.Core.ModCompile.DeveloperMode) // Needs to run after SetSavePath, as the static ctor depends on SavePath
-				Logging.tML.Info("Developer mode enabled");
 
 			AttemptSupportHighDPI(isServer); // Can run anytime
 
@@ -408,6 +405,5 @@ public static partial class Program
 			Environment.SetEnvironmentVariable("FNA_GRAPHICS_ENABLE_HIGHDPI", "1");
 			Logging.tML.Info($"High DPI Display detected: setting FNA to highdpi mode");
 		}
-			
 	}
 }

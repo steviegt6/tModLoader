@@ -75,13 +75,14 @@
 +				return IntPtr.Zero;
 +
  			if (name.StartsWith("steam_api")) {
- 				Console.WriteLine("\tdelegating to Steamworks.NET.AnyCPU resolver");
+-				Console.WriteLine("\tdelegating to Steamworks.NET.AnyCPU resolver");
++				Logging.tML.Debug("\tdelegating to Steamworks.NET.AnyCPU resolver");
  				return assemblies[name] = IntPtr.Zero;
  			}
  
--			var files = Directory.GetFiles(NativesDir, $"*{name}*", SearchOption.AllDirectories);
 +			string[] files;
 +			try {
+-			var files = Directory.GetFiles(NativesDir, $"*{name}*", SearchOption.AllDirectories);
 +				files = Directory.GetFiles(NativesDir, $"*{name}*", SearchOption.AllDirectories);
 +			}
 +			catch {

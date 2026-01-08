@@ -188,6 +188,11 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 	public virtual bool AllowPrefix(int pre) => true;
 
 	/// <summary>
+	/// Called immediately after prefix stat changes are applied (as well as <see cref="ModPrefix.Apply(Item)"/>), facilitating item-specific tweaks to prefix effects.
+	/// </summary>
+	public virtual void ApplyPrefix(int pre) { }
+
+	/// <summary>
 	/// Returns whether or not this item can be used. By default returns true.
 	/// <para/> Called on local, server, and remote clients.
 	/// <br/><br/> The item may or not be used after this method is called, so logic in this method should have no side effects such as consuming items or resources.
@@ -323,7 +328,7 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 	}
 
 	/// <summary>
-	/// Called before the potion delay is applied to the player after consuming a healing potion. 
+	/// Called before the potion delay is applied to the player after consuming a healing potion.
 	/// <br/><br/> Return false to prevent application of the <see cref="BuffID.PotionSickness"/> buff and setting <see cref="Player.potionDelay"/>.
 	/// </summary>
 	/// <param name="player">The player consuming the item.</param>

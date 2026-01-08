@@ -2,30 +2,38 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria.ModLoader.Core;
-using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.DownloadManager;
 using Terraria.ModLoader.UI.ModBrowser;
-using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.CompilerServices;
-using Terraria.GameContent.UI.Elements;
 using Terraria.Localization;
-using Terraria.ModLoader;
-using Microsoft.Xna.Framework;
 using Terraria.Social.Steam;
-using System.Text.RegularExpressions;
 
 namespace Terraria.Social.Base;
 
 public struct ModPubId_t
 {
 	public string m_ModPubId;
+
+	public override string ToString() => m_ModPubId;
 }
 
 public class SocialBrowserException : Exception
 {
 	public SocialBrowserException(string message) : base(message)
 	{
+	}
+}
+
+public class BannedModException : SocialBrowserException
+{
+	internal string displayName;
+	internal string modPubId;
+
+	public BannedModException(string message, string displayName, string modPubId) : base(message)
+	{
+		this.displayName = displayName;
+		this.modPubId = modPubId;
 	}
 }
 
@@ -40,6 +48,8 @@ public interface SocialBrowserModule
 #pragma warning restore CS8424
 
 	public List<ModDownloadItem> DirectQueryItems(QueryParameters queryParams, out List<string> missingMods);
+
+	public DeveloperMetadata GetDeveloperMetadataFromModBrowser(ModPubId_t modId);
 
 	/////// Display of Browser Items ///////////////////////////////////////////
 
@@ -103,7 +113,7 @@ public interface SocialBrowserModule
 		var iterationSet = set;
 
 		while (true) {
-			// Get the list of all Publish IDs labelled as dependencies 
+			// Get the list of all Publish IDs labelled as dependencies
 			foreach (var item in iterationSet) {
 				iterationList.UnionWith(item.ModReferenceByModId);
 			}
@@ -145,6 +155,9 @@ public interface SocialBrowserModule
 
 		return "1.4.4"; // Long Term Service Version 1.4.4 (Current)
 	}
+
+	public static (string browserVersion, int keepCount)[] keepRequirements =
+			{ ("1.4.3", 1), ("1.4.4", 3), ("1.3", 1), ("1.4.4-Transitive", 0) };
 
 	internal static List<(WorkshopTagOption tag, bool setState, bool degraded)> GetModLocalizationProgress(TmodFile tModFile, List<WorkshopTagOption> existingActiveTagsList)
 	{
@@ -203,6 +216,7 @@ public struct QueryParameters
 	public ModSideFilter modSideFilter;
 
 	public QueryType queryType;
+	public bool returnDevMetadata;
 }
 
 public enum QueryType

@@ -470,7 +470,6 @@ internal static class ModOrganizer
 		}
 	}
 
-	
 	private static void EnsureRecentlyBuildModsAreLoading(List<LocalMod> mods)
 	{
 		// If a mod maker attempts to debug a mod with a lower version, it won't be selected so we catch that here. We throw an error because this is definitely not desired.
@@ -602,7 +601,7 @@ internal static class ModOrganizer
 
 	internal static List<LocalMod> Sort(ICollection<LocalMod> mods)
 	{
-		var preSorted = mods.OrderBy(mod => mod.Name).ToList();
+		var preSorted = mods.OrderBy(mod => mod.Name, StringComparer.InvariantCulture).ToList();
 		var syncedSort = BuildSort(preSorted.Where(mod => mod.properties.side == ModSide.Both).ToList());
 		var fullSort = BuildSort(preSorted);
 		EnsureSyncedDependencyStability(syncedSort, fullSort);
@@ -649,7 +648,7 @@ internal static class ModOrganizer
 
 	internal static string GetActiveTmodInRepo(string repo)
 	{
-		var information = AnalyzeWorkshopTmods(repo).Where(t => 
+		var information = AnalyzeWorkshopTmods(repo).Where(t =>
 			// Ignore Transitive versions of tModLoader, such as 1.4.4-transitive. See 'GetBrowserVersionNumber' for why
 			!SocialBrowserModule.GetBrowserVersionNumber(t.tModVersion).Contains("Transitive")
 		);
@@ -689,10 +688,7 @@ internal static class ModOrganizer
 		if (information == null || information.Count() <= 3)
 			return;
 
-		(string browserVersion, int keepCount)[] keepRequirements =
-			{ ("1.4.3", 1), ("1.4.4", 3), ("1.3", 1), ("1.4.4-Transitive", 0) };
-
-		foreach (var requirement in keepRequirements) {
+		foreach (var requirement in SocialBrowserModule.keepRequirements) {
 			var mods = GetOrderedTmodWorkshopInfoForVersion(information, requirement.browserVersion).Skip(requirement.keepCount);
 
 			foreach (var item in mods) {
