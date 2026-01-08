@@ -47,46 +47,50 @@
  	}
  
  	public LightMaskMode GetMask(int x, int y) => _mask[IndexOf(x, y)];
-@@ -91,6 +_,20 @@
+@@ -78,6 +_,7 @@
+ 
+ 	private void BlurPass()
+ 	{
++		/*
+ 		FastParallel.For(0, Width, delegate (int start, int end, object context) {
+ 			for (int j = start; j < end; j++) {
+ 				BlurLine(IndexOf(j, 0), IndexOf(j, Height - 1 - NonVisiblePadding), 1);
+@@ -91,6 +_,26 @@
  				BlurLine(IndexOf(Width - 1, i), IndexOf(NonVisiblePadding, i), -Height);
  			}
  		});
++		*/
 +
-+		/*FastParallel.For(0, Width, delegate (int start, int end, object context) {
++		// TML: Because we switch from column-major to row-major (see IndexOf
++		// comments), we also need to change the stides for these BlurLine
++		// operations.  Also increase Width by 1 because the array is
++		// initialized with extra padding.
++		int rowStride = Width + 1;
++		FastParallel.For(0, Width, delegate (int start, int end, object context) {
 +			for (int j = start; j < end; j++) {
-+				BlurLine(IndexOf(0, j), IndexOf(Height - 1 - NonVisiblePadding, j), 1);
-+				BlurLine(IndexOf(Height - 1, j), IndexOf(NonVisiblePadding, j), -1);
++				BlurLine(IndexOf(j, 0), IndexOf(j, Height - 1 - NonVisiblePadding), rowStride);
++				BlurLine(IndexOf(j, Height - 1), IndexOf(j, NonVisiblePadding), -rowStride);
 +			}
 +		});
 +
 +		FastParallel.For(0, Height, delegate (int start, int end, object context) {
 +			for (int i = start; i < end; i++) {
-+				BlurLine(IndexOf(i, 0), IndexOf(i, Width - 1 - NonVisiblePadding), Height);
-+				BlurLine(IndexOf(i, Width - 1), IndexOf(i, NonVisiblePadding), -Width);
++				BlurLine(IndexOf(0, i), IndexOf(Width - 1 - NonVisiblePadding, i), 1);
++				BlurLine(IndexOf(Width - 1, i), IndexOf(NonVisiblePadding, i), -1);
 +			}
-+		});*/
++		});
  	}
  
  	private void BlurLine(int startIndex, int endIndex, int stride)
-@@ -99,7 +_,8 @@
- 		bool flag = false;
- 		bool flag2 = false;
- 		bool flag3 = false;
--		for (int i = startIndex; i != endIndex + stride; i += stride) {
-+		for (int j = startIndex; j != endIndex + stride; j += stride) {
-+			var i = (j % Width) * Height + (j / Width);
- 			if (zero.X < _colors[i].X) {
- 				zero.X = _colors[i].X;
- 				flag = false;
 @@ -178,16 +_,38 @@
  		}
  	}
  
-+	// TML: Swap stride to make _colors layout more appropriate to be used as a
-+	// texture.
++	// TML: color array converted from column-major to row-major to make texture uploads
++	// direct.
 -	private int IndexOf(int x, int y) => x * Height + y;
 +	// private int IndexOf(int x, int y) => x * Height + y;
-+	private int IndexOf(int x, int y) => y * Width + x;
++	private int IndexOf(int x, int y) => y * (Width + 1) + x;
  
  	public void SetSize(int width, int height)
  	{

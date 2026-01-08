@@ -30,8 +30,8 @@ partial class LightMap
 	/// </returns>
 	public unsafe (Texture2D texture, Rectangle tileArea) GetBufferTexture()
 	{
-		var width = Width;
-		var height = Height;
+		var width = Width + 1;
+		var height = Height + 1;
 
 		// TODO
 		Rectangle tileArea = new(0, 0, width, height);
