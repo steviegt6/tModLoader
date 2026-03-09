@@ -110,7 +110,7 @@ Once all patches are fixed, these items need to be fixed or double checked:
   - "This is unused, replaced with this.ArmorPenetration." patch might be incorrect as well. Nearby switch table also changed a lot, might need to apply them elsewhere.
 - Vanilla CanHavePrefixes logic changed, might be able to use it rather than tml changes.
 - Item banner related methods moved to GameContent.BannerSystem. Need to move docs over.
-- Item Shimmer/Update/CheckLavaDeath/MoveInWorld/GetPickedUpByMonsters_Special/FindOwner/getRect/GetShimmered/related methods have moved to World Item. Need to move docs/patches over.
+- Item Shimmer/Update/CheckLavaDeath/MoveInWorld/GetPickedUpByMonsters_Special/FindOwner/getRect/GetShimmered/CombineWithNearbyItems/related methods have moved to World Item. Need to move docs/patches over.
 - ModPylon.DrawMapIcon needs to support new vanilla options (DrawClamped when fullscreen it seems.)
 - ItemSlot has new flip parameter, what is it used for? PreDrawInInventory needs flip parameter. (and itemFade parameter? And secondColor?)
 - "// Sound is played on animation start #ItemTimeOnAllClients" comments around "SoundEngine.PlaySound(item6.UseSound" in MessageBuffer's `ShotAnimationAndSound` code. ShotAnimationAndSound was renamed, we might need to verify that this is still fixed in tmod.
@@ -136,13 +136,21 @@ Once all patches are fixed, these items need to be fixed or double checked:
 - Double check new DoScrollingInInventory logic against PlayerInput.MouseInModdedUI
 - Patches checking ActiveWorldFileData being null and initializing it might be superfluous now. Seems like there were some vanilla changes.
 - MapRenderer class now contains what was Main.mapSectionTexture and mapTarget. Most static fields there should probably be public.
-- New vanilla TooltipLine options. Need to add to docs and decide on name (is there a wiki page as well?): CommonItemTooltip.ItemUnlockedByTeammate, armorPenetration, bonusTagDamage, check for others.
+- New vanilla TooltipLine options. Need to add to docs and decide on name (is there a wiki page as well?): CommonItemTooltip.ItemUnlockedByTeammate, armorPenetration, bonusTagDamage, check for others. Seems like "Social" and "SocialDesc" logic changed, compare tooltips to 1.4.4 and adjust.
 - DrawBlockReplacementIcon return changed from void to bool. Does that affect how the builders toggle works? Did vanilla behavior change? New state bool in logic, and DoStatefulTickSound
 - StartRain method now seems to be more controllable. Update docs accordingly. (StopRain as well)
 - New guns that use Player.spaceGun? See updated `toolTipNames[numLines] = "UseMana";` patch. Look into IsSpaceGun and GetManaCost, might need updates. 4347, 4348, 514
 - Double check PlayerLoader.ModifyZoom logic. Seems like there is only 1 callsite now, code was cleaned up?
 - What is Main.boulderLogo? Seems like MenuLoader needs to be updated with a new vanilla menu option?
 - There are new music tracks and some might have been moved. Update SceneEffectPriority enum docs and double check that they are correct for both methods.
+- ArmorIDs.Legs.Sets.OverridesLegs needs 55, 63
+- DrawPlayer_14_2_GlassSlipperSparkles gone?
+- ArmorIDs.Body.Sets.HidesBottomSkin needs 216, 214, 215
+- Need to find where ProjectileLoader.DrawHeldProjInFrontOfHeldItemAndArms (ModProjectile.DrawHeldProjInFrontOfHeldItemAndArms) should go. PlayerDrawSet removed heldProjOverHand and there are new fields as well. Seems like `SelectedDrawnProjectile.drawLayer == 8` replaced it in DrawPlayer_31_ProjectileOverArm? ProjectileDrawLayerID.HeldProjOverHand exists.
+- SoundID.TML: NPCHit58, NPCDeath67, NPCDeath68, Item179-199
+- CreateTrackable now has maxInstances parameter, need to make sure they are applied to our changes.
+- Item.CanStack has been added. ItemLoader.CanStack patches should probably be moved into it.
+- Item.IsTheSameAs removed
 
 # New Fields that might need more documentation
 
@@ -206,6 +214,7 @@ Once all patches are fixed, these items need to be fixed or double checked:
 - The number3 parameter of the SyncEquipment message seems to have changed meaning. Docs needed.
 - EntitySource_FishedOut will now apply to fishing item spawns instead of just npc spawns.
 - Main.blackTarget removed. All other render targets are now static and WorldSceneLayerTarget instead of RenderTarget2D. (What does WorldSceneLayerTarget do?)
+- ArmorIDs.Head.Sets.DrawHead renamed to ArmorIDs.Head.Sets.HidesHead and values inverted
 
 # tModPorter TODOs
 
@@ -260,6 +269,24 @@ These are simple changes that we'd like Terraria to implement, mainly to reduce 
 - More simple typos: GemTree_Sappphire, garenteeNewStyle, caveOpenningSize, IsTileReplacable, DrawUnderworldBackgroudLayer, Dodgable, MakeHairsylesMenu, `_requiredObjecsForCraftingText`, pointPoisition, "GameUI.PrecentFishingPower", GemTree_Sappphire, Sillouette->Silhouette, WhoAmIToTargettingIndex, Emittence->Emittance, actuatorsLeftToConstume
 - DrawUnderworldBackgroudLayer -> DrawUnderworldBackgroundLayer
 - NPCInteraction.ShowExcalmation -> ShowExclamation
+- PlayerDrawSet.missingHand and missingArm are the opposite of what they sound like apparently. tModLoader changes them as follows:
+```diff
++	// Renames for less confusion [
+-	public bool missingHand;
++	public bool armorHidesHands;
+-	public bool missingArm;
++	public bool armorHidesArms;
++
++	internal bool missingHand {
++		get => !armorHidesHands;
++		set => armorHidesHands = !value;
++	}
++	internal bool missingArm {
++		get => !armorHidesArms;
++		set => armorHidesArms = !value;
++	}
++	// ]
+```
 
 # Longer Patch issues:
 
